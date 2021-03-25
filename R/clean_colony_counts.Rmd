@@ -1,0 +1,184 @@
+---
+title: "clean_colony_counts"
+author: "Edward hurme"
+date: "3/25/2021"
+output: html_document
+---
+
+```{r}
+library(readxl)
+library(lubridate)
+library(tidyverse)
+library(ggplot2)
+```
+
+# load colony data
+## original data
+```{r}
+count <- read.csv("../../../../Dropbox/MPI/Eidolon/Data/Monitoring/monitoring_data.csv")
+count$date <- dmy(count$Date)
+count$time_diff <- NA
+count$ratio <- NA
+
+IDs <- unique(count$Location)
+i = 1
+for(i in 1:length(IDs)){
+  idx <- which(count$Location == IDs[i])
+  c <- count[idx,]
+  
+  # time lag between counts
+  count$time_diff[idx] <- c(NA, diff(c$date, units = "days"))
+  
+  # plot count
+  # plot(c$date, c$Count, type = "o", main = IDs[i])
+  
+  # calculate ratio over moving window of +-1 year?
+  j = 1
+  for(j in 1:nrow(c)){
+    idxx <- which(as.numeric(abs(c$date[j] - c$date), units = "days") <= 365)
+    
+    cc <- c[idxx,]
+    # plot(cc$date, cc$Count, type = "o")
+    count$ratio[idx[j]] <- c$Count[j]/max(cc$Count, na.rm = TRUE)
+  }
+  c <- count[idx,]
+  layout(c(1,2))
+  plot(c$date, c$Count, type = "o", main = IDs[i])
+  plot(c$date, c$ratio, type = "o")
+}
+
+
+ggplot(count, aes(x = date, y = Count, col = Location))+
+  geom_point()+
+  theme_classic()+
+  facet_wrap(~Location, scales = "free")+theme(legend.position = "none")
+```
+## Add Richter Data
+```{r}
+
+#r <- readxl::read_excel("../../../../Dropbox/MPI/Eidolon/Greenwave/data/Count/Richter_Heidi/Bat Count Data2001.xls", sheet = 3)
+r <-  readxl::read_excel("C:/Users/edwar/Dropbox/MPI/Eidolon/Data/Richter_Heidi/Bat Count Data2001.xls", sheet = 3)
+colnames(r) <- janitor::make_clean_names(r[2,])
+
+r <- r[-c(1:3),-4]
+r$date <- seq.Date(as.Date("2001-10-22"), as.Date("2002-01-08"), by = 1)
+r$mean_number_count <- as.numeric(r$mean_number_count)
+plot(r$date, r$mean_number_count*536.4519)
+5000000/max(r$mean_number_count, na.rm = TRUE)
+
+r$ratio <- r$mean_number_count/max(r$mean_number_count, na.rm = TRUE)
+plot(r$ratio)
+
+r$Long <- count$Long[count$Location == "Kasanka"][1]
+r$Lat <- count$Lat[count$Location == "Kasanka"][1]
+r$Country <- count$Country[count$Location == "Kasanka"][1]
+r$Location <- count$Location[count$Location == "Kasanka"][1]
+r$Count <- r$mean_number_count *536.4519
+r$Observer <- "Heidi Richter & Graeme Cumming"
+r$Doubtful <- ""
+
+count <- full_join(count, r)
+```
+
+## load Teague's version
+```{r load colony data}
+
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/data/Count/count_ratio.RData")
+head(batdf)
+
+raw.data <- batdf
+unique(paste0(raw.data$Long, ", ", raw.data$Lat))
+tmp <- raw.data %>% group_by(Long, Lat) %>% 
+  summarise()
+tmp$geeID <- 1:nrow(tmp)
+
+names(tmp) <- c("Long", "Lat", "geeID")
+
+colonies <- inner_join(tmp, count)
+
+
+```
+### how is Teague's ratio calculated?
+```{r}
+
+cs <- batdf %>% group_by(Location, year(timestamp)) %>% 
+  summarise(custom_ratio = Count/max(Count), timestamp, ratio)
+
+plot(cs$custom_ratio, cs$ratio)
+
+```
+
+
+## summarize colony data
+```{r}
+colony_sum <- 
+  colonies %>% group_by(Country,Location) %>% 
+  summarise(geeID = min(geeID), Lat = min(Lat), Long = min(Long),
+            start = min(date), end = max(date), 
+            duration = as.numeric(round(diff(c(min(date), max(date)))/365,1)), 
+            count = n(), interval = median(diff(date)))
+
+colony_sum
+# write.csv(colony_sum, file = "../../../../Dropbox/MPI/Eidolon/Data/Count/colony_sum.csv")
+
+```
+
+## thin to monthly counts
+```{r}
+reg_colonies <- data.frame()
+ids <- unique(colonies$Location)
+i = 2
+
+
+for(i in 1:length(ids)){
+  c <- colonies[colonies$Location == ids[i],]
+  c <- c[order(c$date),]
+  
+  # pdf(file = paste0("./plots/Count/", c$Location[1], "_count.pdf"))
+  layout(c(1:3))
+  plot(c$date, c$ratio, #col = c$change,
+         type = "o", xlab = "Time", ylab= "ratio", main = c$Location[1])
+  
+
+  # regularize by month
+  c <- mutate(c, month = round_date(date, unit = "month"))
+  
+  # average multiple counts in a month
+  monthly_count <- c %>% 
+    group_by(Location, Long, Lat, geeID, Country, month) %>% 
+    summarise(ratio = mean(ratio, na.rm = TRUE),
+              count = mean(Count, na.rm = TRUE),
+              Observer = Observer[1])
+  if(any(duplicated(monthly_count$month))) print(i)
+  
+  # fill in missing months
+  continuous_count <- monthly_count %>% 
+    complete(month = seq.Date(from = min(month), to = max(month), by = "month"))
+  
+  continuous_count$count <- na.approx(object = continuous_count$count, maxgap = 2)
+  continuous_count$ratio <- na.approx(object = continuous_count$ratio, maxgap = 2)
+
+  plot(continuous_count$month, continuous_count$count, type = "o", 
+       main = "Interpolated",
+       xlab = "month", ylab = "count")
+  with(continuous_count[is.na(continuous_count$Observer),], 
+       points(month, count, col = 2, pch = 16))
+  
+  plot(continuous_count$month, continuous_count$ratio, type = "o",
+       main = "Interpolated",
+       xlab = "month", ylab = "ratio")
+  with(continuous_count[is.na(continuous_count$Observer),], 
+       points(month, ratio, col = 2, pch = 16))
+  
+  # dev.off()
+  
+  # exclude locations with too few?
+  tmp <- rle(is.na(continuous_count$Observer))
+  
+  reg_colonies <- rbind(reg_colonies, continuous_count)
+}
+
+save(colonies, count, reg_colonies, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/colony_count.RData")
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/colony_count.RData")
+```
+
