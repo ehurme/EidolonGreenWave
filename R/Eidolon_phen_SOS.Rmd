@@ -1,0 +1,65 @@
+---
+title: "Eidolon_phen_SOS"
+output: html_document
+---
+```{r}
+library(tidyverse)
+library(gridExtra)
+library(NLMR)
+library(DHARMa)
+library(mgcv)
+library(lme4)
+library(MuMIn)
+library(raster)
+```
+
+
+# model months to peak IRG
+```{r}
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
+```
+
+# Add start and end of season estimates to each peak
+```{r}
+# Peaks$sos <- NA
+# Peaks$eos <- NA
+# Peaks$months_to_SOS <- NA
+# Peaks$months_to_EOS <- NA
+# 
+# years <- u
+# nique(Peaks$year)
+# i = 1
+# for(i in 1:length(years)){
+#   idx <- which(Peaks$year == years[i])
+#   p <- Peaks[idx,]
+# 
+#   sos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/SOS_YEARS/", years[i], "_SOS_DOY.tif"))
+#   eos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/EOS_YEARS/", years[i], "_EOS_DOY.tif"))
+# 
+#   # plot(sos)
+#   # res(sos)
+#   sos2 <- aggregate(sos, fact = 100)
+#   eos2 <- aggregate(eos, fact = 100)
+#   res(sos2)
+#   plot(sos2)
+#   plot(eos2)
+# 
+#   xy <- coordinates(cbind(p$Long, p$Lat))
+#   Peaks$sos[idx] <- raster::extract(x = sos2, y = xy)
+#   Peaks$eos[idx] <- raster::extract(eos2, xy)
+# 
+#   Peaks$months_to_SOS[idx] <- round(difftime(Peaks$month[idx],
+#                                       as.Date(Peaks$sos[idx],
+#                                               origin = paste0(year(Peaks$month),"-01-01")),
+#                                       unit = "weeks")/4, 0) %>% as.numeric
+#   Peaks$months_to_SOS[which(Peaks$months_to_SOS > 6)] <- round(yday(Peaks$month) - Peaks$sos)
+# 
+# 
+#   sos <- {}
+#   eos <- {}
+# }
+# 
+# hist(Peaks$eos)
+# hist(Peaks$sos)
+
+```

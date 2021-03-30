@@ -1,0 +1,930 @@
+---
+title: "Eidolon_phenology_modis_modeled"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+# load libraries
+```{r setup, echo=FALSE}
+# packrat::init()
+# basic toolkit
+library(ggplot2)
+library(ggformula)
+library(dplyr) 
+library(tidyverse) # piping
+library(scales) 
+library(viridisLite) # nice colors
+library(ggpubr) # nice plotting
+library(readxl) # read xls
+library(janitor) # clean column names
+library(zoo) # interpolation
+library(raster)
+
+# time series
+library(lubridate)
+
+# math
+require(pracma) # area under the curve
+
+# Mapping
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+# Species occurrence data
+library(rgbif)
+library(rinat)
+
+# modeling
+library(mgcv)
+library(lme4)
+library(MuMIn)
+# library(tidymodels)
+library(vip)
+
+
+source("../src/IRG_functions.R")
+```
+
+# load counts
+```{r}
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/colony_count.RData")
+```
+
+
+# load GEE data
+```{r load GEE data}
+
+EVI <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/rl_MOD13Q1_EVI_2000_2020_ptsB_EidolonColonies_QCOP1_buf50km.csv")
+MEVI1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_Peak_1_2000_2020_ptsB.csv")
+table(MEVI1$geeID)
+MEVI2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_Peak_2_2000_2020_ptsB.csv")
+MIRG1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreenup_1_2000_2020_ptsB.csv")
+MIRG2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreenup_2_2000_2020_ptsB.csv")
+MGRD1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreendown_1_2000_2020_ptsB.csv")
+MGRD2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreendown_2_2000_2020_ptsB.csv")
+numcycles <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_NumCycles_2000_2020_ptsB.csv")
+QA1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_QA_Overall_1_2000_2020_ptsB.csv")
+QA2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_QA_Overall_2_2000_2020_ptsB.csv")
+MEVImin1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Minimum_1_2000_2020_ptsB.csv")
+MEVImin2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Minimum_2_2000_2020_ptsB.csv")
+MEVIamp1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Amplitude_1_2000_2020_ptsB.csv")
+MEVIamp2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Amplitude_2_2000_2020_ptsB.csv")
+MEVIarea1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Area_1_2000_2020_ptsB.csv")
+MEVIarea2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Area_2_2000_2020_ptsB.csv")
+
+precip <- read.csv("../../../../Dropbox/MPI/Eidolon/Greenwave/data/GEE/ee_precip_chirps_colonies_2000_2020.csv")
+names(precip) <- c("time", 1:17)
+precip$time <- dmy(precip$time)
+```
+
+## join data
+```{r join data}
+MEVI1$amp <- MEVIamp1$mean
+MEVI2$amp <- MEVIamp2$mean
+MEVI1$min <- MEVImin1$mean
+MEVI2$min <- MEVImin2$mean
+MEVI1$max <- MEVI1$amp + MEVI1$min
+MEVI2$max <- MEVI2$amp + MEVI2$min
+MEVI1$area <- MEVIarea1$mean
+MEVI2$area <- MEVIarea2$mean
+MEVI1$IRG <- MIRG1$mean
+MEVI2$IRG <- MIRG2$mean
+MEVI1$GRD <- MGRD1$mean
+MEVI2$GRD <- MGRD2$mean
+MEVI1$peak <- 1
+MEVI2$peak <- 2
+MEVI1$QA <- QA1$mean
+MEVI2$QA <- QA2$mean
+
+MEVI <- rbind(MEVI1, MEVI2)
+
+MEVI$date_EVI <- ymd("1970-01-01")+MEVI$mean
+MEVI$yday_EVI <- yday(MEVI$date_EVI)
+MEVI$date_IRG <- ymd("1970-01-01")+MEVI$IRG
+MEVI$yday_IRG <- yday(MEVI$date_IRG)
+MEVI$date_GRD <- ymd("1970-01-01")+MEVI$GRD
+MEVI$yday_GRD <- yday(MEVI$date_GRD)
+
+MEVI <- MEVI[order(MEVI$date_EVI),]
+# MEVI$lat <- unique(colonies$Lat)
+
+for(i in 1:nrow(MEVI)){
+  MEVI$lat[i] <- unique(colonies$Lat[MEVI$geeID[i] == colonies$geeID])
+  MEVI$Location[i] <- unique(colonies$Location[MEVI$geeID[i] == colonies$geeID])
+}
+
+summary(MEVI)
+
+EVI$time <- ymd_hms(EVI$startDate)
+```
+
+# add EVI, IRG, and precipitation to all counts
+```{r colony cycles}
+IDs <- unique(reg_colonies$geeID)
+i = 14
+layout(1)
+for(i in 1:length(IDs)){
+  c <- reg_colonies[reg_colonies$geeID == IDs[i],]
+  e <- EVI[EVI$geeID == IDs[i],]
+  p <- precip[,c(1,(i+1))]
+  names(p) <- c("time", "mean")
+  # layout(rbind(1,2))
+
+  with(c, plot(month, ratio, type = "o", 
+               pch = 16, col = as.numeric(is.na(Observer))+1,
+               ylim = c(0,1),
+               main = paste0(Location[1],", ", Country[1] , "; ID = ", geeID[1])))
+  with(e, points(as.Date(time), mean/max(mean), type = "o", col = 3, pch = 16))
+  with(p, points(as.Date(time), mean/max(mean), type = "o", col = 4, pch = 16))
+  with(c, points(month, ratio, type = "o", 
+               pch = 16, col = as.numeric(is.na(Observer))+1))
+}
+
+```
+# add IRG to EVI
+```{r}
+IDs
+EVI$EVI <- NA
+EVI$IRG <- NA
+EVI$Lat <- NA
+i = 1
+for(i in 1:length(IDs)){
+  idx <- which(EVI$geeID == i)
+  e <- EVI[idx,]
+  time <- e$time
+  evi <- e$mean
+  
+  spl <- smooth.spline(x = time, y = evi)
+  pred <- predict(spl)
+  EVI$EVI[idx] <- pred$y
+  # get derivative of EVI -> IRG
+  pred.prime <- predict(spl, deriv=1)
+  plot(pred.prime, type = "l")
+  # pred.prime$y_scale <- rescale(pred.prime$y, c(0,1))
+  # plot(pred.prime$x, pred.prime$y_scale, type = "l")
+  
+  EVI$IRG[idx] <- pred.prime$y
+  
+  EVI$Lat[idx] <- colonies$Lat[which(colonies$geeID == i)[1]]
+}
+```
+
+
+# ggplot
+```{r}
+ggplot(EVI, aes(x = month(time)))+
+  geom_smooth(col = 3, aes(y = EVI/max(EVI), se = FALSE, group = geeID))+
+  geom_smooth(aes(y = IRG/max(IRG), group = geeID), se = FALSE, col = 2)+
+  geom_smooth(data = reg_colonies, se = FALSE, 
+              aes(x = month(month), y = ratio, group = geeID), col = 1)+
+  # coord_cartesian(xlim=c(0,12))+
+  xlab("ratio")+ylab("month")+theme_classic()+
+  facet_wrap(~round(Lat,2), ncol = 6)
+
+```
+
+
+# Find corresponding EVI and precipitation data for all colony data
+```{r}
+IDs <- 1:max(colonies$geeID)
+rs <- data.frame()
+i = 12
+for(i in 1:length(IDs)){
+  ID <- i
+  e <- EVI[EVI$geeID == ID,]
+  
+  p <- precip[,c(1,ID+1)]
+  names(p) <- c("time", "precip")
+  p$time <- ymd_hms(paste0(p$time, " 12:00:00"))
+  
+  c_idx <- which(colonies$geeID == ID)
+  colony <- colonies[c_idx,]
+  colony$time <- ymd(colony$date)
+    
+  par(mar = c(1,4,1,1), oma = c(1,1,1,1), xpd=FALSE)
+  # layout(rbind(1,2))
+  layout(1)
+  colony$time-1
+  with(colony, plot(time, ratio, type = "o", lwd = 2,
+       xlim = c(min(time)-365, max(time)+365)))
+  lines(as.Date(e$time), e$mean, col = 3, lwd = 2,)
+  lines(x = as.Date(p$time), y = p$precip/max(p$precip), lwd = 2, col = 4)
+  
+  mevi1 <- MEVI[MEVI$geeID == ID & MEVI$peak == 1,]
+  mevi2 <- MEVI[MEVI$geeID == ID & MEVI$peak == 2,]
+  
+  points(x = mevi1$date_EVI, col = "green",
+         y = rep(1, nrow(mevi1)), pch = 16)
+  points(x = mevi2$date_EVI, col = "darkgreen",
+         y = rep(1, nrow(mevi2)), pch = 16)
+  
+  points(x = mevi1$date_IRG, col = "red",
+         y = rep(1, nrow(mevi1)), pch = 16)
+  points(x = mevi2$date_IRG, col = "darkred",
+         y = rep(1, nrow(mevi2)), pch = 16)
+  
+  points(x = mevi1$date_GRD, col = "blue",
+         y = rep(1, nrow(mevi1)), pch = 16)
+  points(x = mevi2$date_GRD, col = "darkblue",
+         y = rep(1, nrow(mevi2)), pch = 16)
+  
+  legend("topright", legend = c("IRG1","IRG2","EVI1", "EVI2", "GRD1", "GRD2"), 
+         col = c("red", "darkred", "green", "darkgreen", "blue", "darkblue"), pch = 16)
+  
+  dl <- geosphere::daylength(colony$Lat[1], seq(1,331, by = 30))
+  dayl <- data.frame(date = seq.Date(as.Date("2000-01-01"), 
+                                     as.Date("2019-12-01"), 
+                                     by = "month"), 
+                     daylength = rep(dl, 20))
+  dayl$geeID <- ID
+  dayl$year <- year(dayl$date)
+  lines(dayl$date, rescale(dayl$daylength), 
+        col = "gold", lwd = 2)
+  
+    summary(p)
+  p$year <- year(p$time)
+  p$geeID <- ID
+  p_sum <- p %>% group_by(year, geeID) %>% 
+    summarise(precip_spline = time[which.max(precip)])
+
+  MEVI$year <- year(MEVI$date_EVI)
+  m_sum1 <- MEVI[MEVI$geeID == ID,] %>% group_by(geeID, year) %>% 
+    summarise(EVI1_model = date_EVI[which(peak == 1)],
+              EVI_model = date_EVI[which.max(amp)],
+              IRG1_model = date_IRG[which(peak == 1)],
+              IRG_model = date_IRG[which.max(amp)],
+              GRD1_model = date_GRD[which(peak == 1)],
+              GRD_model = date_GRD[which.max(amp)],
+              amp_MEVI = amp[which.max(amp)],
+              min_MEVI = min[which.max(amp)],
+              max_MEVI = max[which.max(amp)])
+  
+  m_sum2 <- MEVI[MEVI$geeID == ID,] %>% group_by(geeID, year) %>% 
+    summarise(EVI2_model = date_EVI[which(peak == 2)],
+              IRG2_model = date_IRG[which(peak == 2)],
+              GRD2_model = date_IRG[which(peak == 2)])
+  m_sum <- full_join(m_sum1, m_sum2)
+  
+  e$year <- year(e$time)
+  e_sum <- e %>% group_by(geeID, year) %>% 
+    summarise(max_EVI = max(EVI, na.rm = TRUE),
+              min_EVI = min(EVI))
+  # dayl$daylength %>% plot(type = "l")
+  # dl_sum <- dayl %>% group_by(geeID, year) %>%
+  #   summarise(daylength_month = date[which.max(daylength)],
+  #             daylength = daylength[which.max(daylength)])
+
+  # plot(dayl$daylength)
+  C <- full_join(p_sum, m_sum)
+  C <- full_join(C, e_sum)
+  rs <- rbind(rs, C)
+}
+summary(rs)
+save(colonies, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/colonies_MEVI.Rdata")
+
+# (rs$daylength) %>% plot
+```  
+
+```{r}
+plot(rs$max_EVI, rs$max_MEVI)
+plot(rs$min_EVI, rs$min_MEVI)
+rs$amp_EVI <- rs$max_EVI - rs$min_EVI
+plot(rs$amp_MEVI, rs$amp_EVI)
+
+```
+
+
+
+# Check peak colony month
+## find colony peaks
+```{r}
+Peaks <- data.frame()
+IDs <- unique(colonies$geeID)
+i = 14
+for(i in 1:length(IDs)){
+  rc <- colonies[colonies$geeID == IDs[i],]
+  rc <- rc[order(rc$date),]
+  # find peaks
+  peak_time <- rc$date[findpeaks(rc$ratio)]
+  
+  # add any missed peaks at ratio of .6
+  peak_time <- unique(c(peak_time, na.omit(rc$date[rc$ratio > 0.6])))
+  
+  peaks <- rc[which(rc$date %in% peak_time),]
+  
+  # plot peaks
+  with(rc, plot(date, ratio, type = "o", pch = 16,
+                col = as.numeric(is.na(Observer))+1,
+                main = rc$Location[1]))
+  abline(v = peaks$date, lty = 2) 
+  
+  # remove peaks with ratios below 0.4
+  peaks <- peaks[which(peaks$ratio > 0.4),]
+  
+  
+  # remove peaks that are within 6 months
+  while(any(diff(peaks$date) < 180)){
+    
+    too_close <- which(diff(peaks$date) < 180)[1]
+    
+    # if sequential peaks with ratio = 1, then take the middle
+    if(all(peaks$ratio[too_close:(too_close+1)] == 1)){
+      idx <- which((peaks$date[too_close:(too_close+10)] - peaks$date[too_close]) < 180) 
+      tmp <- rle(peaks$ratio[too_close:(too_close+(length(idx)-1))])
+      ctmp <- rle(peaks$Count[too_close:(too_close+(length(idx)-1))])
+      if(tmp$lengths[1] == ctmp$lengths[1]){
+        # even
+        if((tmp$lengths[1] %% 2) == 0){
+          keep <- round(median(1:tmp$lengths[1]),0)
+          kick <- (1:tmp$lengths[1])[-keep]
+          peaks <- peaks[-(too_close+(kick-1)),]
+        }
+        # odd
+        if((tmp$lengths[1] %% 2) != 0){
+          keep <- median(1:tmp$lengths[1])
+          kick <- (1:tmp$lengths[1])[-keep]
+          peaks <- peaks[-(too_close+(kick-1)),]
+        }
+      }
+        
+    }
+    # update too_close
+    too_close <- which(diff(peaks$date) < 180)[1]
+    
+    # keep peak with higher ratio
+    if(any(peaks$ratio[too_close:(too_close+1)] != 1))
+    kick <- which.min(peaks$ratio[too_close:(too_close+1)])
+    peaks <- peaks[-(too_close+kick-1),]
+  }
+  abline(v = peaks$date, lwd = 2, col = 4) 
+  Peaks <- rbind(Peaks, peaks)
+}
+Peaks$month <- round_date(Peaks$date, unit = "month")
+
+```
+
+# plot colony and RS peaks 
+```{r}
+i = 12
+for(i in 1:length(IDs)){
+  p <- Peaks[which(Peaks$geeID == IDs[i]),]
+  r <- rs[which(rs$geeID == IDs[i]),]
+  # layout(c(1,2))
+  
+  plot(r$year, month(r$IRG_model), type = "o", pch = 16,
+       ylab = "month", xlab = "", col = 2,
+       ylim = c(0,12), main = paste(p$Location[1], "model"))
+  # abline(v = 2000:2020, lty = 2)
+  points(r$year, month(r$EVI_model), type ="o", pch = 16, col = 3)
+  points(r$year, month(r$precip_spline), type = "o", pch = 16, col = 4)
+  # points(r$year, month(r$daylength_month), type = "o", pch = 16, col = "gold")
+  points(x = year(p$month), y = month(p$month), col = 1, pch = 16, cex = 2)
+  
+  
+  legend("bottomleft", legend = c("EVI", "IRG", "Precip", "Colony"), pch = 16, col = c(3,2,4,1))
+  # plot(r$year, month(r$IRG_model), type = "o", pch = 16,
+  #      ylab = "month", xlab = "", col = 3,
+  #      ylim = c(0,12), main = paste(p$Location[1], "model"))
+  # points(r$year, month(r$EVI_model), type ="o", pch = 16)
+  # points(x = p$year, y = month(p$month), col = 2, pch = 16)
+  # points(x = p$year, y = month(p$month), col = 2, pch = 16)
+  
+}
+
+```
+## months to phen
+# Time to peak
+## months
+```{r}
+IDs <- unique(Peaks$geeID)
+
+Peaks$precip_spline <- ymd("1900-01-01")
+Peaks$EVI1_model <- ymd("1900-01-01")
+Peaks$IRG1_model <- ymd("1900-01-01")
+Peaks$GRD1_model <- ymd("1900-01-01")
+Peaks$EVI2_model <- ymd("1900-01-01")
+Peaks$IRG2_model <- ymd("1900-01-01")
+Peaks$GRD2_model <- ymd("1900-01-01")
+Peaks$EVI_model <- ymd("1900-01-01")
+Peaks$IRG_model <- ymd("1900-01-01")
+Peaks$GRD_model <- ymd("1900-01-01")
+Peaks$LOS_start <- ymd("1900-01-01")
+Peaks$LOS_end <- ymd("1900-01-01")
+Peaks$LOS <- NA
+i = 1
+for(i in 1:length(IDs)){
+  pidx <- which(Peaks$geeID == IDs[i])
+  p <- Peaks[pidx,]  
+  r <- rs[rs$geeID == IDs[i],]
+  j = 1
+  for(j in 1:nrow(p)){
+    
+    # modis model
+    Peaks$EVI_model[pidx[j]] <- round_date(
+      ymd(r$EVI_model[which.min(abs(p$month[j] - as.Date(r$EVI_model)))]), 
+      unit = "month")
+    Peaks$IRG_model[pidx[j]] <- round_date(
+      ymd(r$IRG_model[which.min(abs(p$month[j] - as.Date(r$IRG_model)))]), 
+      unit = "month")
+    Peaks$GRD_model[pidx[j]] <- round_date(
+      ymd(r$GRD_model[which.min(abs(p$month[j] - as.Date(r$GRD_model)))]), 
+      unit = "month")
+    Peaks$EVI1_model[pidx[j]] <- round_date(
+      ymd(r$EVI1_model[which.min(abs(p$month[j] - as.Date(r$EVI1_model)))]), 
+      unit = "month")
+    Peaks$IRG1_model[pidx[j]] <- round_date(
+      ymd(r$IRG1_model[which.min(abs(p$month[j] - as.Date(r$IRG1_model)))]), 
+      unit = "month")
+    Peaks$GRD1_model[pidx[j]] <- round_date(
+      ymd(r$GRD1_model[which.min(abs(p$month[j] - as.Date(r$GRD1_model)))]), 
+      unit = "month")
+    Peaks$EVI2_model[pidx[j]] <- round_date(
+      ymd(r$EVI2_model[which.min(abs(p$month[j] - as.Date(r$EVI2_model)))]), 
+      unit = "month")
+    Peaks$IRG2_model[pidx[j]] <- round_date(
+      ymd(r$IRG2_model[which.min(abs(p$month[j] - as.Date(r$IRG2_model)))]), 
+      unit = "month")
+    Peaks$GRD2_model[pidx[j]] <- round_date(
+      ymd(r$GRD2_model[which.min(abs(p$month[j] - as.Date(r$GRD2_model)))]), 
+      unit = "month")
+    # Peaks[pidx[j],10:19]
+  }
+}
+
+Peaks$months_to_precip_spline <- round(difftime(Peaks$month, 
+                                                Peaks$precip_spline, 
+                                                unit = "weeks")/4,0) %>% as.numeric
+Peaks$months_to_EVI_model <- round(difftime(Peaks$month, 
+                                            Peaks$EVI_model, 
+                                            unit = "weeks")/4,0) %>% as.numeric
+Peaks$months_to_IRG_model <- round(difftime(Peaks$month, 
+                                            Peaks$IRG_model, 
+                                            unit = "weeks")/4,0) %>% as.numeric
+Peaks$months_to_GRD_model <- round(difftime(Peaks$month, 
+                                            Peaks$GRD_model, 
+                                            unit = "weeks")/4,0) %>% as.numeric
+Peaks$months_to_EVI1_model <- round(difftime(Peaks$month, 
+                                             Peaks$EVI1_model, 
+                                             unit = "weeks")/4,0) %>% as.numeric
+Peaks$months_to_IRG1_model <- round(difftime(Peaks$month, 
+                                             Peaks$IRG1_model, 
+                                             unit = "weeks")/4,0) %>% as.numeric
+Peaks$months_to_GRD1_model <- round(difftime(Peaks$month, 
+                                            Peaks$GRD1_model, 
+                                            unit = "weeks")/4,0) %>% as.numeric
+Peaks$months_to_EVI2_model <- round(difftime(Peaks$month, 
+                                             Peaks$EVI2_model, 
+                                             unit = "weeks")/4,0) %>% as.numeric
+Peaks$months_to_IRG2_model <- round(difftime(Peaks$month, 
+                                             Peaks$IRG2_model, 
+                                             unit = "weeks")/4,0) %>% as.numeric
+Peaks$months_to_GRD2_model <- round(difftime(Peaks$month, 
+                                            Peaks$GRD2_model, 
+                                            unit = "weeks")/4,0) %>% as.numeric
+
+
+```
+
+```{r}
+library(data.table)
+p <- as.data.table(Peaks)
+p_mlt <- melt(p, id.vars = c("Location", "Country", "geeID", 
+                             "Long", "Lat", "date", "ratio", 
+                             "Count", "Observer"), 
+              measure.vars = c("months_to_IRG_model","months_to_EVI_model",
+                               "months_to_GRD_model",
+                               "months_to_IRG1_model","months_to_EVI1_model",
+                               "months_to_GRD1_model",
+                               "months_to_IRG2_model","months_to_EVI2_model",
+                               "months_to_GRD2_model",
+                            "months_to_precip_spline"))
+ggplot(p_mlt, aes(x = variable, y = value, fill = variable))+
+  geom_hline(yintercept = 0)+
+  geom_violin() + geom_boxplot(width=.1)+
+  theme(legend.position = "none",
+  axis.text.x = element_text(angle = 30, vjust = 1, hjust=1))+
+  ylim(c(-10,7))
+```
+
+## prep data
+```{r}
+Peaks$abs_Lat <- abs(Peaks$Lat)
+Peaks$log_colony_size <- log(Peaks$Count)
+median(Peaks$months_to_IRG_model)
+Peaks$abs_months_to_IRG_model <- abs(Peaks$months_to_IRG_model)
+Peaks$abs_months_to_IRG1_model <- abs(Peaks$months_to_IRG1_model)
+
+plot(Peaks$months_to_IRG_model, Peaks$months_to_IRG1_model)
+hist(Peaks$months_to_IRG1_model)
+```
+
+## add lat long to rs
+```{r}
+rs$seasonality <- NA
+IDs
+for(i in 1:length(IDs)){
+  rs$Lat[rs$geeID == IDs[i]] <- Peaks$Lat[Peaks$geeID == IDs[i]]
+  rs$Long[rs$geeID == IDs[i]] <- Peaks$Long[Peaks$geeID == IDs[i]]
+  # rs$seasonality[rs$geeID == IDs[i]] <- Peaks$seasonality[Peaks$geeID == IDs[i]][1]
+}
+
+rs$abs_Lat <- abs(rs$Lat)
+Peaks$abs_months_to_IRG_model <- abs(Peaks$months_to_IRG_model)
+
+```
+
+## join peaks and rs
+```{r}
+library(geosphere)
+rs$LOS <- rs$GRD_model - rs$IRG_model
+rs$LOS1 <- rs$GRD1_model - rs$IRG1_model
+
+rs$avg_LOS <- NA
+IDs <- unique(rs$geeID)
+i = 1
+for(i in 1:length(IDs)){
+  idx <- which(rs$geeID == IDs[i])
+  SOS <- circ.mean.yday(yday(rs$IRG_model[idx]))
+  EOS <- circ.mean.yday(yday(rs$GRD_model[idx]))
+  if((EOS - SOS)>0) rs$avg_LOS[idx] <- EOS - SOS  
+  if((EOS - SOS)<0) rs$avg_LOS[idx] <- SOS - EOS
+}
+
+Peaks$year <- year(Peaks$date)
+for(i in 1:nrow(Peaks)){
+  idx <- which(Peaks$geeID[i] == rs$geeID & Peaks$year[i] == rs$year)
+  Peaks$amp[i] <-max(rs$amp[idx], na.rm = TRUE)
+  # Peaks$seasonality[i] <- rs$seasonality[idx]
+  Peaks$max_EVI[i] <- max(rs$max_EVI[idx], na.rm = TRUE)
+  Peaks$min_EVI[i] <- max(rs$min_EVI[idx], na.rm = TRUE)
+  Peaks$max_MEVI[i] <- max(rs$max_MEVI[idx], na.rm = TRUE)
+  Peaks$min_MEVI[i] <- max(rs$min_MEVI[idx], na.rm = TRUE)
+  Peaks$LOS[i] <-     max(rs$LOS[idx], na.rm = TRUE)
+  Peaks$avg_LOS[i] <- max(rs$avg_LOS[idx], na.rm = TRUE)
+  # Peaks$auc_EVI[i] <- max(rs$area_EVI[idx], na.rm = TRUE)
+  Peaks$daylength[i]<-max(daylength(Peaks$Lat[i], 1:365))
+}
+Peaks$amp_EVI <- Peaks$max_EVI - Peaks$min_EVI
+Peaks$amp_MEVI <- Peaks$max_MEVI - Peaks$min_MEVI
+
+Peaks$log_colony_size <- log(Peaks$Count)
+Peaks$abs_Lat <- abs(Peaks$Lat)
+
+summary(Peaks)
+Peaks[which(is.na(Peaks$min_EVI)),]
+rs
+
+
+```
+
+
+```{r}
+
+psych::pairs.panels(Peaks[,c("abs_months_to_IRG_model", "abs_Lat", "log_colony_size", 
+                             "ratio", "max_EVI", "min_EVI",
+                             "amp_EVI", "max_MEVI", "min_MEVI", 
+                             "amp_MEVI",  "LOS", "avg_LOS")])
+```
+
+###### check for spatial autocorrelation
+```{r}
+# moran's I
+library(tidyverse)
+library(gridExtra)
+library(NLMR)
+library(DHARMa)
+
+# unique_peaks <- Peaks %>% group_by(Lat, Long) %>% 
+#   summarise(months_to_EVI = median(months_to_IRG_model),
+#             season = median(seasonality))
+# 
+# m_non <- lm(months_to_EVI ~ season, unique_peaks)
+# 
+# sims <- simulateResiduals(m_non)
+# # sims_rc <- recalculateResiduals(m_non)
+# testSpatialAutocorrelation(sims, x = unique_peaks$Long, y = unique_peaks$Lat, plot = TRUE)
+```
+
+###### identify family for model
+```{r}
+library(fitdistrplus)
+descdist(Peaks$months_to_IRG_model %>% abs, boot = 1000)
+```
+
+
+#### dredge
+
+##### abs
+```{r}
+library(lme4)
+library(MuMIn)
+summary(Peaks)
+
+
+Peaks[which(is.na(Peaks$min_EVI)),]
+
+no_kasanka <-  Peaks[which(Peaks$geeID != 14),]
+no_accra <- Peaks[which(Peaks$geeID != 10),]
+
+Peaks$months_to_IRG_model %>% abs %>% 
+  hist(breaks = 6, main = "", xlab = "Months to Peak IRG")
+table(Peaks$abs_months_to_IRG_model)
+m1 = glmer(abs(months_to_IRG_model)~
+             scale(LOS)+ # correlated with max MEVI
+             scale(avg_LOS)+
+             scale(amp_MEVI)+
+             scale(abs_Lat)+
+             #scale(auc_EVI)+ # too correlated
+             # scale(max_EVI)+
+             #scale(min_EVI)+
+             # scale(max_MEVI)+ # correlated with LOS
+             scale(min_MEVI)+  # correlated with amp
+             # scale(daylength)+ #correlated with amp and min EVI
+             # scale(log(count))+
+             scale(log_colony_size)+
+             scale(ratio)+
+             (1|geeID),
+          family = poisson(link = "log"),
+           data = Peaks, #no_kasanka,#
+          na.action=na.fail)
+summary(m1)
+r.squaredGLMM(m1)
+sims <- DHARMa::simulateResiduals(m1)
+plot(sims)
+dd = dredge(m1)
+dd
+
+# write.table(dd, file = "../output/dredge_absmonthstoIRG.txt")
+```
+### best
+```{r}
+m1_best = glmer(abs(months_to_IRG_model)~
+             scale(abs_Lat)+
+             scale(LOS)+
+             # scale(max_EVI)+
+             # scale(max_MEVI)+
+             scale(log_colony_size)+
+             
+               # scale(min_EVI)+
+               # scale(ratio)+
+             (1|geeID),
+          family = poisson(link = "log"),
+           data = Peaks, #no_kasanka,#
+          na.action=na.fail)
+summary(m1_best)
+r.squaredGLMM(m1_best)
+sims <- DHARMa::simulateResiduals(m1_best)
+plot(sims)
+```
+### interaction
+```{r}
+# m1i = glmer(abs(months_to_IRG_model)~
+#              (scale(avg_LOS)+
+#              #scale(amp_EVI)+
+#              #scale(auc_EVI)+
+#              scale(max_EVI)+
+#              scale(min_EVI)+
+#              # scale(daylength)+
+#              # scale(log(count))+
+#              scale(log_colony_size)+
+#              scale(ratio))^2+
+#              (1|geeID),
+#           family = poisson(link = "log"),
+#            data = Peaks, #no_kasanka,#
+#           na.action=na.fail)
+#           #REML=FALSE)
+# summary(m1i)
+# r.squaredGLMM(m1i)
+# sims <- simulateResiduals(m1i)
+# plot(sims)
+# ddi = dredge(m1i)
+# ddi
+# ddi[1]
+```
+
+### Leave one out cross validation
+```{r}
+IDs <- unique(reg_colonies$geeID)
+fits <- list()
+r.sq <- list()
+
+Peaks$predictIRG <- NA
+i = 1
+
+for(i in 1:length(IDs)){
+  df <- Peaks[Peaks$geeID != IDs[i],]
+  
+  fits[[i]] <- lmer((months_to_IRG_model) ~ 
+                     scale(LOS)+
+                     scale(abs_Lat)+
+                     scale(log_colony_size)+
+                     # scale(ratio)+
+                   (1|geeID), 
+             data = df)
+  summary(fits[[i]])
+  r.sq[[i]] <-  r.squaredGLMM(fits[[i]])
+  
+  df_out <- Peaks[Peaks$geeID == IDs[i],]
+  Peaks$predictIRG[which(Peaks$geeID == IDs[i])] <- 
+    predict(fits[[i]], df_out, allow.new.levels = TRUE)
+}
+
+
+library(ggpmisc)
+# https://stackoverflow.com/questions/7549694/add-regression-line-equation-and-r2-on-graph
+my.formula <- y ~ x
+
+ggplot(Peaks, aes(abs(months_to_IRG_model), predictIRG, col = Location))+
+  geom_point()+
+  geom_smooth(method = "lm", col = 1)+
+  theme_classic()+
+  stat_poly_eq(formula = my.formula, 
+                aes(label = paste(..rr.label.., sep = "~~~")), 
+                parse = TRUE)
+
+r.sq_df <- sapply(r.sq, unlist)
+
+plot(r.sq_df[2,], ylab = "R^2", xlab = "Dropped Colony",
+     main = "Leave one Colony Out Model Performance")
+abline(h = mean(r.sq_df[2,]))
+```
+## spatial glmm
+```{r}
+library(glmmfields)
+library(ggplot2)
+library(dplyr)
+options(mc.cores = parallel::detectCores())
+
+m_spatial <- glmmfields(as.numeric(months_to_IRG_model) ~
+                          log(count) + amp + ratio + seasonality + (1|geeID),
+  data = Peaks, 
+  #family = Gamma(link = "log"),
+  lat = "Lat", lon = "Long", 
+  nknots = 12, iter = 2000, chains = 4,
+  prior_intercept = student_t(50, 200, 70), 
+  prior_beta = student_t(50, -30, 3),
+  prior_sigma = half_t(50, 0, 3),
+  prior_gp_theta = half_t(50, 0, 10),
+  prior_gp_sigma = half_t(50, 0, 3),
+  seed = 123 # passed to rstan::sampling()
+)
+m_spatial
+```
+
+### plot spatial glmm
+```{r}
+plot(m_spatial, type = "spatial-residual", link = TRUE) +
+  geom_jitter(size = 3, width = 1, height = 1)
+```
+
+
+```{r}
+plot(m_spatial, type = "residual-vs-fitted")
+```
+
+
+## gam
+```{r}
+library(mgcv)
+#Peaks$daylength <- geosphere::daylength(Peaks$Lat, yday(Peaks$month))
+Peaks$Location <- as.factor(Peaks$Location)
+```
+
+### normal
+```{r}
+g <- gam(abs(months_to_IRG_model)~
+             # s(avg_LOS)+
+             # s(LOS)+
+             s(amp_EVI, k = 10)+ # R2 = 0.32
+             # s(auc_EVI, k = 5)+
+             s(max_EVI, k = 10)+
+             # s(min_EVI, k = 5)+
+             # s(daylength, k = 10)+ # r^2 = 0.37
+             # s(log_colony_size, k = 10)+
+             # s(ratio, k = 5)+
+            # s(Long, Lat, k = 40, bs = "gp")+
+            s(Location, bs = "re"),
+            data = Peaks,
+          method = "REML")
+summary(g)
+plot(g, scale = 0, shade = TRUE, scheme = 2)
+gam.check(g, rep = 500)
+```
+
+#### spatial
+```{r}
+gs <- gam(abs(months_to_IRG_model)~
+            s(max_EVI)+
+            s(daylength)+
+            s(Long, Lat, k = 10, bs = "tp")+
+            s(Location, bs = "re"),
+            data = Peaks,
+          method = "REML")
+summary(gs)
+plot(gs, scale = 0, shade = TRUE, scheme = 2)
+gam.check(gs, rep = 500)
+AIC(g, gs)
+```
+
+
+### nb
+```{r}
+g_nb <- gam(abs(months_to_IRG_model)~
+            s(max_EVI)+
+            s(daylength)+
+            #s(Long, Lat, k = 10, bs = "tp")+
+            s(Location, bs = "re"),
+            data = Peaks,
+            family = nb,
+          method = "REML")
+summary(g_nb)
+plot(g_nb, scale = 0, shade = TRUE, scheme = 2)
+gam.check(g_nb, rep = 500)
+```
+
+
+#### spatial
+```{r}
+g_nbs <- gam(abs(months_to_IRG_model)~
+            s(max_EVI)+
+            s(daylength)+
+            s(Long, Lat, k = 10, bs = "tp")+
+            s(Location, bs = "re"),
+            data = Peaks,
+            family = nb,
+          method = "REML")
+summary(g_nbs)
+plot(g_nbs, scale = 0, shade = TRUE, scheme = 2)
+gam.check(g_nbs, rep = 500)
+```
+
+### tw
+```{r}
+g_tw <- gam(abs(months_to_IRG_model)~
+            s(max_EVI)+
+            s(daylength)+
+            s(Location, bs = "re"),
+            data = Peaks,
+            family = tw,
+          method = "REML")
+summary(g_tw)
+plot(g_tw, scale = 0, shade = TRUE, scheme = 2)
+gam.check(g_tw, rep = 500)
+
+AIC(g, g_nb, g_tw)
+```
+#### spatial
+```{r}
+g_tws <- gam(abs(months_to_IRG_model)~
+            s(max_EVI)+
+            s(daylength)+
+            
+              s(Long, Lat, k = 10, bs = "tp")+
+            s(Location, bs = "re"),
+            data = Peaks,
+            family = tw,
+          method = "REML")
+summary(g_tws)
+plot(g_tws)
+gam.check(g_tws, rep = 500)
+
+aics <- AIC(g, gs, g_nb, g_nbs, g_tw, g_tws)
+aics[order(aics$AIC),]
+```
+
+### ziP
+```{r}
+g_ziP <- gam(abs(months_to_IRG_model)~
+            s(max_EVI)+
+            s(daylength)+
+            s(Location, bs = "re"),
+            data = Peaks,
+            family = ziP,
+          method = "REML")
+summary(g_ziP)
+plot(g_ziP, scale = 0, shade = TRUE, scheme = 2)
+gam.check(g_ziP, rep = 5000)
+
+AIC(g, g_nb, g_tw, g_ziP)
+```
+#### spatial
+```{r}
+g_ziPs <- gam(abs(months_to_IRG_model)~
+            s(max_EVI, k = 5)+
+            # s(irg, k = 5)+
+            # s(precip)+
+            s(daylength)+
+            # s(month)+
+            # s(year, k = 20)+
+            s(Long, Lat, k = 10, bs = "tp"),
+            #s(Location, bs = "re"),
+            data = Peaks,
+            family = ziP,
+          method = "REML")
+summary(g_ziPs)
+plot(g_ziPs, scale = 0, shade = TRUE, scheme = 2)
+gam.check(g_ziPs, rep = 500)
+
+AIC(g, g_nb, g_tw, g_ziP, gs, g_nbs, g_tws, g_ziPs)
+```
+

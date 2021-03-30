@@ -61,17 +61,19 @@ load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/colony_count.RData")
 # load GEE data
 ```{r load GEE data}
 EVI <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/rl_MOD13Q1_EVI_2000_2020_ptsB_EidolonColonies_QCOP1_buf50km.csv")
-MEVI1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf50km_Peak_1_2000_2020_ptsB.csv")
-MEVI2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf50km_Peak_2_2000_2020_ptsB.csv")
-MIRG1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf50km_MidGreenup_1_2000_2020_ptsB.csv")
-MIRG2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf50km_MidGreenup_2_2000_2020_ptsB.csv")
-numcycles <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf50km_NumCycles_2000_2020_ptsB.csv")
-QA1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf50km_QA_Overall_1_2000_2020_ptsB.csv")
-QA2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf50km_QA_Overall_2_2000_2020_ptsB.csv")
-MEVIamp1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf50km_EVI_Amplitude_1_2000_2020_ptsB.csv")
-MEVIamp2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf50km_EVI_Amplitude_2_2000_2020_ptsB.csv")
-MEVIarea1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf50km_EVI_Area_1_2000_2020_ptsB.csv")
-MEVIarea2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf50km_EVI_Area_2_2000_2020_ptsB.csv")
+MEVI1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_Peak_1_2000_2020_ptsB.csv")
+MEVI2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_Peak_2_2000_2020_ptsB.csv")
+MIRG1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreenup_1_2000_2020_ptsB.csv")
+MIRG2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreenup_2_2000_2020_ptsB.csv")
+MGRD1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreendown_1_2000_2020_ptsB.csv")
+MGRD2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreendown_2_2000_2020_ptsB.csv")
+numcycles <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_NumCycles_2000_2020_ptsB.csv")
+QA1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_QA_Overall_1_2000_2020_ptsB.csv")
+QA2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_QA_Overall_2_2000_2020_ptsB.csv")
+MEVIamp1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Amplitude_1_2000_2020_ptsB.csv")
+MEVIamp2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Amplitude_2_2000_2020_ptsB.csv")
+MEVIarea1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Area_1_2000_2020_ptsB.csv")
+MEVIarea2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Area_2_2000_2020_ptsB.csv")
 
 precip <- read.csv("../../../../Dropbox/MPI/Eidolon/Greenwave/data/GEE/ee_precip_chirps_colonies_2000_2020.csv")
 names(precip) <- c("time", 1:17)
@@ -86,6 +88,8 @@ MEVI1$area <- MEVIarea1$mean
 MEVI2$area <- MEVIarea2$mean
 MEVI1$IRG <- MIRG1$mean
 MEVI2$IRG <- MIRG2$mean
+MEVI1$GRD <- MGRD1$mean
+MEVI2$GRD <- MGRD2$mean
 MEVI1$peak <- 1
 MEVI2$peak <- 2
 MEVI1$QA <- QA1$mean
@@ -97,6 +101,8 @@ MEVI$date_EVI <- ymd("1970-01-01")+MEVI$mean
 MEVI$yday_EVI <- yday(MEVI$date_EVI)
 MEVI$date_IRG <- ymd("1970-01-01")+MEVI$IRG
 MEVI$yday_IRG <- yday(MEVI$date_IRG)
+MEVI$date_GRD <- ymd("1970-01-01")+MEVI$GRD
+MEVI$yday_GRD <- yday(MEVI$date_GRD)
 
 MEVI <- MEVI[order(MEVI$date_EVI),]
 # MEVI$lat <- unique(colonies$Lat)
@@ -299,6 +305,8 @@ for(i in 1:length(IDs)){
                                                       as.Date(time)))]
     colonies$irg[c_idx[j]] <- e$IRG[which.min(abs(as.Date(colony$time[j]) -
                                                                      as.Date(time)))]
+    # colonies$grd[c_idx[j]] <- e$GRD[which.min(abs(as.Date(colony$time[j]) -
+    #                                                                  as.Date(time)))]
     colonies$precip[c_idx[j]] <- p$precip[which.min(abs(as.Date(colony$time[j]) - 
                                                       as.Date(timep)))]
   }
@@ -349,7 +357,7 @@ for(i in 1:length(IDs)){
 
   # plot(dayl$daylength)
   C <- full_join(e_sum, m_sum)
-  C <- full_join(C, dl_sum)
+  # C <- full_join(C, dl_sum)
   C <- full_join(C, p_sum)
   rs <- rbind(rs, C)
 }
@@ -433,8 +441,8 @@ i = 14
 rs_max <- rs %>% group_by(year, geeID) %>% 
   summarise(EVI_spline = EVI_spline[which.max(max_EVI)],
             IRG_spline = IRG_spline[which.max(max_IRG)],
-            precip_spline = precip_spline[1],
-            daylength_month = rs$daylength_month[1])
+            precip_spline = precip_spline[1]) # ,
+            # daylength_month = rs$daylength_month[1])
 
 for(i in 1:length(IDs)){
   p <- Peaks[which(Peaks$geeID == IDs[i]),]
@@ -447,7 +455,7 @@ for(i in 1:length(IDs)){
   # abline(v = 2000:2020, lty = 2)
   points(r$year, month(r$EVI_spline), type ="o", pch = 16, col = 3)
   points(r$year, month(r$precip_spline), type = "o", pch = 16, col = 4)
-  points(r$year, month(r$daylength_month), type = "o", pch = 16, col = "gold")
+  # points(r$year, month(r$daylength_month), type = "o", pch = 16, col = "gold")
   points(x = year(p$month), y = month(p$month), col = 1, pch = 16, cex = 2)
   
   
@@ -464,47 +472,50 @@ for(i in 1:length(IDs)){
 ```
 
 # Add start and end of season estimates to each peak
+## do we want to reduce resolution of all points?
 ```{r}
-# Peaks$sos <- NA
-# Peaks$eos <- NA
-# Peaks$months_to_SOS <- NA
-# Peaks$months_to_EOS <- NA
-# 
-# years <- u
-# nique(Peaks$year)
-# i = 1
-# for(i in 1:length(years)){
-#   idx <- which(Peaks$year == years[i])
-#   p <- Peaks[idx,]
-# 
-#   sos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/SOS_YEARS/", years[i], "_SOS_DOY.tif"))
-#   eos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/EOS_YEARS/", years[i], "_EOS_DOY.tif"))
-# 
-#   # plot(sos)
-#   # res(sos)
-#   sos2 <- aggregate(sos, fact = 100)
-#   eos2 <- aggregate(eos, fact = 100)
-#   res(sos2)
-#   plot(sos2)
-#   plot(eos2)
-# 
-#   xy <- coordinates(cbind(p$Long, p$Lat))
-#   Peaks$sos[idx] <- raster::extract(x = sos2, y = xy)
-#   Peaks$eos[idx] <- raster::extract(eos2, xy)
-# 
-#   Peaks$months_to_SOS[idx] <- round(difftime(Peaks$month[idx],
-#                                       as.Date(Peaks$sos[idx],
-#                                               origin = paste0(year(Peaks$month),"-01-01")),
-#                                       unit = "weeks")/4, 0) %>% as.numeric
-#   Peaks$months_to_SOS[which(Peaks$months_to_SOS > 6)] <- round(yday(Peaks$month) - Peaks$sos)
-# 
-# 
-#   sos <- {}
-#   eos <- {}
-# }
-# 
-# hist(Peaks$eos)
-# hist(Peaks$sos)
+Peaks$sos <- NA
+Peaks$eos <- NA
+Peaks$months_to_SOS <- NA
+Peaks$months_to_EOS <- NA
+Peaks$sos_res <- NA
+
+years <- unique(Peaks$year)
+i = 1
+for(i in 1:length(years)){
+  idx <- which(Peaks$year == years[i])
+  p <- Peaks[idx,]
+
+  sos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/SOS_YEARS/", years[i], "_SOS_DOY.tif"))
+  eos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/EOS_YEARS/", years[i], "_EOS_DOY.tif"))
+  xy <- coordinates(cbind(p$Long, p$Lat))
+  
+  while(any(is.na(Peaks$sos[idx]))){
+    Peaks$sos[idx] <- raster::extract(x = sos, y = xy)
+    Peaks$eos[idx] <- raster::extract(eos, xy)
+    
+    sos <- aggregate(sos, fact = 10)
+    eos <- aggregate(eos, fact = 10)
+  }
+  Peaks$sos_res[idx] <- res(sos)[1]
+  print(res(sos))
+  print(res(eos))
+  # plot(sos2)
+  # plot(eos2)
+
+  Peaks$months_to_SOS[idx] <- round(difftime(Peaks$month[idx],
+                                      as.Date(Peaks$sos[idx],
+                                              origin = paste0(year(Peaks$month),"-01-01")),
+                                      unit = "weeks")/4, 0) %>% as.numeric
+  Peaks$months_to_SOS[which(Peaks$months_to_SOS > 6)] <- round(yday(Peaks$month) - Peaks$sos)
+
+
+  sos <- {}
+  eos <- {}
+}
+
+hist(Peaks$eos)
+hist(Peaks$sos)
 
 ```
 
@@ -996,6 +1007,11 @@ ggplot(CC_mlt, aes(x = variable,
 ```
 
 # model months to peak IRG
+```{r}
+save(Peaks, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
+```
+
 
 ## prep data
 ```{r}
@@ -1043,6 +1059,7 @@ psych::pairs.panels(Peaks[,c("abs_months_to_IRG_spline", "evi", "irg")])
 
 ## join peaks and rs
 ```{r}
+
 library(geosphere)
 # rs_max <- rs %>% group_by(year, geeID) %>% 
 #   summarise(
@@ -1163,6 +1180,8 @@ sims <- DHARMa::simulateResiduals(m1)
 plot(sims)
 dd = dredge(m1)
 dd[1]
+
+# write.table(dd, file = "../output/dredge_absmonthstoIRG.txt")
 ```
 ### best
 ```{r}
@@ -1436,6 +1455,9 @@ AIC(g, g_nb, g_tw, g_ziP, gs, g_nbs, g_tws, g_ziPs)
 ```
 
 
+
+
+
 # model months to peak EVI
 ## dredge
 
@@ -1676,8 +1698,8 @@ ggplot(Africa)+geom_sf()+
 
 ## save peakIRG models
 ```{r}
-save(fit, fits, fiti, fita, m_spatial, r.sq_df, Peaks, file = "../rdata/Eidolon_IRG_models.robj")
-load("../rdata/Eidolon_IRG_models.robj")
+# save(fit, fits, fiti, fita, m_spatial, r.sq_df, Peaks, file = "../rdata/Eidolon_IRG_models.robj")
+# load("../rdata/Eidolon_IRG_models.robj")
 ```
 
 # model abs months to peak IRG
@@ -1838,7 +1860,7 @@ ggplot(Africa)+geom_sf()+
 ```
 ## save peakPrecip models
 ```{r}
-save(pfit, pfits, pfiti, pfita, mp_spatial, r.sq_dfp, Peaks, file = "../rdata/Eidolon_Precip_models.robj")
+# save(pfit, pfits, pfiti, pfita, mp_spatial, r.sq_dfp, Peaks, file = "../rdata/Eidolon_Precip_models.robj")
 ```
 
 
@@ -2005,7 +2027,7 @@ ggplot(Africa)+geom_sf()+
 ```
 ## save peakPrecip models
 ```{r}
-save(pfit, pfits, pfiti, pfita, mp_spatial, r.sq_dfp, Peaks, file = "../rdata/Eidolon_Precip_models.robj")
+# save(pfit, pfits, pfiti, pfita, mp_spatial, r.sq_dfp, Peaks, file = "../rdata/Eidolon_Precip_models.robj")
 ```
 
 
@@ -2469,6 +2491,6 @@ animate(p, renderer = gifski_renderer())
 
 # save
 ```{r}
-save(Colonies, m_spatial, file = "../data/Colony_IRG_fit.robj")
+# save(Colonies, m_spatial, file = "../data/Colony_IRG_fit.robj")
 ```
 

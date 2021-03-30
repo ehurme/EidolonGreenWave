@@ -97,7 +97,6 @@ names(tmp) <- c("Long", "Lat", "geeID")
 
 colonies <- inner_join(tmp, count)
 
-
 ```
 ### how is Teague's ratio calculated?
 ```{r}
