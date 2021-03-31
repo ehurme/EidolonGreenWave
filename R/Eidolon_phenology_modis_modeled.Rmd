@@ -485,6 +485,7 @@ Peaks$months_to_GRD2_model <- round(difftime(Peaks$month,
 
 ```
 
+### plot
 ```{r}
 library(data.table)
 p <- as.data.table(Peaks)
@@ -669,7 +670,7 @@ m1_best = glmer(abs(months_to_IRG_model)~
                # scale(ratio)+
              (1|geeID),
           family = poisson(link = "log"),
-           data = Peaks, #no_kasanka,#
+           data = no_kasanka,#
           na.action=na.fail)
 summary(m1_best)
 r.squaredGLMM(m1_best)
