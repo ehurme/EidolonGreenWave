@@ -164,6 +164,7 @@ for(i in 1:length(IDs)){
 ```
 
 
+
 # ggplot
 ```{r}
 ggplot(EVI, aes(x = month(time)))+
@@ -366,6 +367,56 @@ save(colonies, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/regul
 
 # (rs$daylength) %>% plot
 ```  
+
+# calculate entropy
+```{r}
+EVI$entropy <- NA
+EVI$seasonality <- NA
+EVI$maxEVImonth <- NA
+EVI$EVIannualsum <- NA
+
+EVI$year <- year(EVI$time)
+EVI$month <- month(EVI$time)
+EVI_monthly <- EVI %>% group_by(geeID, year, month) %>% 
+  summarise(EVI = mean(mean, na.rm = TRUE))
+
+for(i in 1:length(IDs)){
+  em <- EVI_monthly[EVI_monthly$geeID == IDs[i],]
+  # monthly mean
+  Rm <- em %>% group_by(month, year) %>% summarise(EVI = mean(EVI, na.rm = TRUE))
+  years <- unique(em$year)
+  for(j in 1:length(years)){
+    R <- mean(Rm$EVI[Rm$year == years[j]], na.rm = TRUE)
+  
+    # max month
+    Rmax <- max(Rm$EVI[Rm$year == years[j]], na.rm = TRUE)
+    
+    # annual sum
+    Ra <- sum(Rm$EVI[Rm$year == years[j]], na.rm = TRUE)
+    
+    # discrete probability distribution of monthly sum
+    ## month/annual
+    pm <- Rm$EVI[Rm$year == years[j]]/Ra
+  
+    # uniform distribution
+    qm <- 1/length(Rm$EVI[Rm$year == years[j]])
+    
+    # relative entropy
+    ## quantifies the extent of EVI concentration in the growing season
+    D <- sum(pm * log(pm/qm), na.rm = TRUE)
+    
+    # seasonality  
+    S <- D * (R/Rmax)
+    
+    idx <- which(EVI$geeID == IDs[i] & EVI$year == years[j])
+    EVI$entropy[idx] <- D
+    EVI$seasonality[idx] <- S
+    EVI$maxEVImonth[idx] <- Rmax
+    EVI$EVIannualsum[idx] <- Ra
+  }
+}
+```
+
 
 # Check peak colony month
 ## find colony peaks
