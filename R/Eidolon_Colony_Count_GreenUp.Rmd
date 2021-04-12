@@ -26,6 +26,7 @@ library(readxl) # read xls
 library(janitor) # clean column names
 library(zoo) # interpolation
 library(raster)
+library(circular)
 
 # time series
 library(lubridate)
@@ -74,10 +75,22 @@ MEVIamp1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODI
 MEVIamp2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Amplitude_2_2000_2020_ptsB.csv")
 MEVIarea1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Area_1_2000_2020_ptsB.csv")
 MEVIarea2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Area_2_2000_2020_ptsB.csv")
+```
 
+# water
+```{r load GEE data}
 precip <- read.csv("../../../../Dropbox/MPI/Eidolon/Greenwave/data/GEE/ee_precip_chirps_colonies_2000_2020.csv")
 names(precip) <- c("time", 1:17)
 precip$time <- dmy(precip$time)
+
+aet <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/EvapoTranspiration/tcy_aet_2000_2020_ptsB.csv")
+def <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/EvapoTranspiration/tcy_def_2000_2020_ptsB.csv")
+psdi <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/EvapoTranspiration/tcy_pdsi_2000_2020_ptsB.csv")
+pet <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/EvapoTranspiration/tcy_pet_2000_2020_ptsB.csv")
+soil <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/EvapoTranspiration/tcy_soil_2000_2020_ptsB.csv")
+
+evap <- data.frame(time = ymd_hms(aet$startDate), geeID = aet$geeID, aet = aet$mean, 
+                   def = def$mean, psdi = psdi$mean, pet = pet$mean, soil = soil$mean)
 ```
 
 ## join data
@@ -124,17 +137,28 @@ for(i in 1:length(IDs)){
   c <- reg_colonies[reg_colonies$geeID == IDs[i],]
   e <- EVI[EVI$geeID == IDs[i],]
   p <- precip[,c(1,(i+1))]
+  t <- evap[evap$geeID == IDs[i],]
   names(p) <- c("time", "mean")
   # layout(rbind(1,2))
 
   with(c, plot(month, ratio, type = "o", 
                pch = 16, col = as.numeric(is.na(Observer))+1,
-               ylim = c(0,1),
+               ylim = c(0,1), lwd = 2,
+               xlim = c(min(month)-365, max(month)+365),
                main = paste0(Location[1],", ", Country[1] , "; ID = ", geeID[1])))
-  with(e, points(as.Date(time), mean/max(mean), type = "o", col = 3, pch = 16))
-  with(p, points(as.Date(time), mean/max(mean), type = "o", col = 4, pch = 16))
-  with(c, points(month, ratio, type = "o", 
-               pch = 16, col = as.numeric(is.na(Observer))+1))
+  # with(e, points(as.Date(time), mean/max(mean), type = "o", col = 3, pch = 16))
+  # with(p, points(as.Date(time), mean/max(mean), type = "o", col = 4, pch = 16))
+  # with(c, points(month, ratio, type = "o", 
+  #              pch = 16, col = as.numeric(is.na(Observer))+1))
+  with(t, points(as.Date(time), aet/max(aet), type = "o", col = 2, pch = 16))
+  # with(t, points(as.Date(time), def/max(def), type = "o", col = 3, pch = 16))
+  # with(t, points(as.Date(time), psdi/max(psdi), type = "o", col = 4, pch = 16))
+  # with(t, points(as.Date(time), pet/max(pet), type = "o", col = 5, pch = 16))
+  with(t, points(as.Date(time), soil/max(soil), type = "o", col = 6, pch = 16))
+  legend("bottomleft", legend = c("colony", "aet", "def", "psdi", "pet", "soil"),
+                                  # "EVI", "Precipitation", 
+                                  # "EvapoTrans"),
+         col = c(1:6), pch = 16)
 }
 
 ```
@@ -273,6 +297,7 @@ for(i in 1:length(IDs)){
   
   e <- subset(EVI, EVI$geeID == ID)
   p <- precip[,c(1,ID+1)]
+  t <- evap[evap$geeID == ID,]
   names(p) <- c("time", "precip")
   p$time <- ymd_hms(paste0(p$time, " 12:00:00"))
   
@@ -305,6 +330,10 @@ for(i in 1:length(IDs)){
   time <- as.Date(e$time)
   evi <- e$mean
   timep <- p$time
+  
+  ttime <- as.Date(t$time)
+  te <- t$aet
+  
   # prp <- p$precip
   
   dl <- geosphere::daylength(colony$Lat[1], seq(1,331, by = 30))
@@ -318,13 +347,18 @@ for(i in 1:length(IDs)){
         col = "gold", lwd = 2)
   
   spl <- smooth.spline(x = time, y = evi)
+  spl_t <- smooth.spline(x = ttime, y = te/max(te))
   #spl_p <- smooth.spline(x = timep, y = prp)
   
   pred <- predict(spl)
+  predt <- predict(spl_t)
   #predp <- predict(spl_p)
   e$pred <- pred$y
+  t$pred <- predt$y
   #p$pred <- predp$y
   lines(pred, col=2)
+  lines(predt, col = 4)
+  
   #lines(p$time, p$pred/max(p$pred), col = "darkblue")
   
   ## get derivative of EVI -> IRG
@@ -361,6 +395,7 @@ for(i in 1:length(IDs)){
     #                                                                  as.Date(time)))]
     colonies$precip[c_idx[j]] <- p$precip[which.min(abs(as.Date(colony$time[j]) - 
                                                       as.Date(timep)))]
+    # colonies$aet[c_idx[j]] <- t$aet[which.min(abs(as.Date(colony$time[j]) - as.Date(ttime)))]
   }
   
   # ggplot() +
@@ -385,6 +420,11 @@ for(i in 1:length(IDs)){
               area_EVI = trapz(as.numeric(time),pred),
               entropy = mean(entropy, na.rm = TRUE),
               seasonality = mean(seasonality, na.rm = TRUE))
+  t$year <- year(t$time)
+  t_sum <- t %>% group_by(year, geeID) %>% 
+    summarise(aet_spline = time[which.max(pred)], 
+              max_aet = aet[which.max(aet)],
+              min_aet = aet[which.min(aet)])
   summary(p)
   p$year <- year(p$time)
   p$geeID <- ID
@@ -411,6 +451,7 @@ for(i in 1:length(IDs)){
 
   # plot(dayl$daylength)
   C <- full_join(e_sum, m_sum)
+  C <- full_join(C, t_sum)
   # C <- full_join(C, dl_sum)
   C <- full_join(C, p_sum)
   rs <- rbind(rs, C)
@@ -566,7 +607,8 @@ i = 14
 rs_max <- rs %>% group_by(year, geeID) %>% 
   summarise(EVI_spline = EVI_spline[which.max(max_EVI)],
             IRG_spline = IRG_spline[which.max(max_IRG)],
-            precip_spline = precip_spline[1]) # ,
+            precip_spline = precip_spline[1],
+            aet_spline = aet_spline[which.max(max_aet)]) # ,
             # daylength_month = rs$daylength_month[1])
 
 for(i in 1:length(IDs)){
@@ -580,11 +622,12 @@ for(i in 1:length(IDs)){
   # abline(v = 2000:2020, lty = 2)
   points(r$year, month(r$EVI_spline), type ="o", pch = 16, col = 3)
   points(r$year, month(r$precip_spline), type = "o", pch = 16, col = 4)
+  points(r$year, month(r$aet_spline), type = "o", pch = 16, col = 5)
   # points(r$year, month(r$daylength_month), type = "o", pch = 16, col = "gold")
   points(x = year(p$month), y = month(p$month), col = 1, pch = 16, cex = 2)
   
   
-  legend("bottomleft", legend = c("EVI", "IRG", "Precip", "Colony"), pch = 16, col = c(3,2,4,1))
+  legend("bottomleft", legend = c("EVI", "IRG", "Precip", "EVAP", "Colony"), pch = 16, col = c(3,2,4,5,1))
   # plot(r$year, month(r$IRG_model), type = "o", pch = 16,
   #      ylab = "month", xlab = "", col = 3,
   #      ylim = c(0,12), main = paste(p$Location[1], "model"))
@@ -599,48 +642,48 @@ for(i in 1:length(IDs)){
 # Add start and end of season estimates to each peak
 ## do we want to reduce resolution of all points?
 ```{r}
-Peaks$sos <- NA
-Peaks$eos <- NA
-Peaks$months_to_SOS <- NA
-Peaks$months_to_EOS <- NA
-Peaks$sos_res <- NA
-
-years <- unique(Peaks$year)
-i = 1
-for(i in 1:length(years)){
-  idx <- which(Peaks$year == years[i])
-  p <- Peaks[idx,]
-
-  sos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/SOS_YEARS/", years[i], "_SOS_DOY.tif"))
-  eos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/EOS_YEARS/", years[i], "_EOS_DOY.tif"))
-  xy <- coordinates(cbind(p$Long, p$Lat))
-  
-  while(any(is.na(Peaks$sos[idx]))){
-    Peaks$sos[idx] <- raster::extract(x = sos, y = xy)
-    Peaks$eos[idx] <- raster::extract(eos, xy)
-    
-    sos <- aggregate(sos, fact = 10)
-    eos <- aggregate(eos, fact = 10)
-  }
-  Peaks$sos_res[idx] <- res(sos)[1]
-  print(res(sos))
-  print(res(eos))
-  # plot(sos2)
-  # plot(eos2)
-
-  Peaks$months_to_SOS[idx] <- round(difftime(Peaks$month[idx],
-                                      as.Date(Peaks$sos[idx],
-                                              origin = paste0(year(Peaks$month),"-01-01")),
-                                      unit = "weeks")/4, 0) %>% as.numeric
-  Peaks$months_to_SOS[which(Peaks$months_to_SOS > 6)] <- round(yday(Peaks$month) - Peaks$sos)
-
-
-  sos <- {}
-  eos <- {}
-}
-
-hist(Peaks$eos)
-hist(Peaks$sos)
+# Peaks$sos <- NA
+# Peaks$eos <- NA
+# Peaks$months_to_SOS <- NA
+# Peaks$months_to_EOS <- NA
+# Peaks$sos_res <- NA
+# 
+# years <- unique(Peaks$year)
+# i = 1
+# for(i in 1:length(years)){
+#   idx <- which(Peaks$year == years[i])
+#   p <- Peaks[idx,]
+# 
+#   sos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/SOS_YEARS/", years[i], "_SOS_DOY.tif"))
+#   eos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/EOS_YEARS/", years[i], "_EOS_DOY.tif"))
+#   xy <- coordinates(cbind(p$Long, p$Lat))
+#   
+#   while(any(is.na(Peaks$sos[idx]))){
+#     Peaks$sos[idx] <- raster::extract(x = sos, y = xy)
+#     Peaks$eos[idx] <- raster::extract(eos, xy)
+#     
+#     sos <- aggregate(sos, fact = 10)
+#     eos <- aggregate(eos, fact = 10)
+#   }
+#   Peaks$sos_res[idx] <- res(sos)[1]
+#   print(res(sos))
+#   print(res(eos))
+#   # plot(sos2)
+#   # plot(eos2)
+# 
+#   Peaks$months_to_SOS[idx] <- round(difftime(Peaks$month[idx],
+#                                       as.Date(Peaks$sos[idx],
+#                                               origin = paste0(year(Peaks$month),"-01-01")),
+#                                       unit = "weeks")/4, 0) %>% as.numeric
+#   Peaks$months_to_SOS[which(Peaks$months_to_SOS > 6)] <- round(yday(Peaks$month) - Peaks$sos)
+# 
+# 
+#   sos <- {}
+#   eos <- {}
+# }
+# 
+# hist(Peaks$eos)
+# hist(Peaks$sos)
 
 ```
 
@@ -681,6 +724,7 @@ Peaks$EVI_spline <- ymd("1900-01-01")
 Peaks$IRG_spline <- ymd("1900-01-01")
 Peaks$EOS_spline <- ymd("1900-01-01")
 Peaks$precip_spline <- ymd("1900-01-01")
+Peaks$aet_spline <- ymd("1900-01-01")
 Peaks$EVI1_model <- ymd("1900-01-01")
 Peaks$IRG1_model <- ymd("1900-01-01")
 Peaks$EVI2_model <- ymd("1900-01-01")
@@ -773,6 +817,11 @@ for(i in 1:length(IDs)){
       r$precip_spline[which.min(abs(p$month[j] - as.Date(r$precip_spline)))], 
       unit = "month")
     
+    # evapotranspiration
+        Peaks$aet_spline[pidx[j]] <- round_date(
+      r$aet_spline[which.min(abs(p$month[j] - as.Date(r$aet_spline)))], 
+      unit = "month")
+    
     # modis model
     Peaks$EVI_model[pidx[j]] <- round_date(
       ymd(r_half$EVI_model[which.min(abs(p$month[j] - as.Date(r_half$EVI_model)))]), 
@@ -807,6 +856,9 @@ Peaks$months_to_EOS_spline <- round(difftime(Peaks$month,
                                              unit = "weeks")/4,0) %>% as.numeric
 Peaks$months_to_precip_spline <- round(difftime(Peaks$month, 
                                                 Peaks$precip_spline, 
+                                                unit = "weeks")/4,0) %>% as.numeric
+Peaks$months_to_aet_spline <- round(difftime(Peaks$month, 
+                                                Peaks$aet_spline, 
                                                 unit = "weeks")/4,0) %>% as.numeric
 Peaks$months_to_EVI_model <- round(difftime(Peaks$month, 
                                             Peaks$EVI_model, 
@@ -867,6 +919,7 @@ for(i in 1:nrow(Peaks)){
   abline(v = p$EVI_spline, col = 3)
   abline(v = p$LOS_end, col = "purple", lty = 2, lwd = 2)
   abline(v = p$EOS_spline, col = "purple")
+  abline(v = p$aet_spline, col = "orange")
   
   # legend("topright", legend = c("Peak Colony Size", ))
 }
@@ -910,9 +963,10 @@ p <- as.data.table(Peaks)
 p_mlt <- melt(p, id.vars = c("Location", "Country", "geeID", 
                              "Long", "Lat", "month", "ratio", 
                              "Count", "Observer", "year"), 
-              measure.vars = c("months_to_EVI_spline", "months_to_EVI_model", 
-                            "months_to_IRG_spline", "months_to_IRG_model",
-                            "months_to_EOS_spline",
+              measure.vars = c("months_to_EVI_spline", # "months_to_EVI_model", 
+                            "months_to_IRG_spline", #"months_to_IRG_model",
+                            "months_to_EOS_spline", 
+                            "months_to_aet_spline",
                             "months_to_precip_spline"))
 ggplot(p_mlt, aes(x = variable, y = value, fill = variable))+
   geom_hline(yintercept = 0)+
@@ -1004,7 +1058,7 @@ p2 <- ggplot(Peaks, aes(y = yday(month), x = yday(IRG_spline), col = abs(Lat)))+
                 aes(label = paste(..rr.label.., sep = "~~~")), 
                 parse = TRUE)
 
-p3 <- ggplot(Peaks, aes(y = yday(month), x = yday(precip_spline), col = abs(Lat)))+
+p3 <- ggplot(Peaks, aes(y = yday(month), x = yday(aet_spline), col = abs(Lat)))+
   geom_point()+xlim(c(0,365))+ylim(c(0,365))+
   geom_smooth(method = "lm")+
   geom_abline(slope = 1, intercept = 0)+ylab("Peak Colony Day")+xlab("Peak Precipitation Day")+
@@ -1125,10 +1179,24 @@ ggplot(CC_mlt, aes(x = variable,
   geom_violin(draw_quantiles = c(0.5)) + theme_classic() + 
   geom_jitter(width = 0.2, alpha = 0.2)+
   theme(legend.position = "none") + 
-  scale_fill_manual(values=cols[c(1,3,2)])+
+  scale_fill_manual(values=cbPalette)+
   # scale_fill_viridis_d() +
   ylab("Months to Peak Colony Size") + xlab("")+ylim(c(-10,7))
 # add statistical tests
+
+my_comparisons <- list( c("Peak EVI", "Peak IRG"), c("Peak EVI", "Peak Precip"), c("Peak IRG", "Peak Precip") )
+p4a <- ggviolin(CC_mlt, x = "variable", y = "value", fill = "variable",
+         palette = cbPalette, 
+         ylim = c(-10,20),
+         add = "boxplot", add.params = list(fill = "white"))+
+  theme(legend.position = "none")+ #, text = element_text(size = 20))+
+  ylab("Months to Peak Colony Size")+ xlab("")+
+  stat_compare_means(comparisons = my_comparisons, label = "p.signif")+ # Add significance levels
+  stat_compare_means(label.y = 50)
+
+p <- ggarrange(p1,p2,p3,p4a, ncol = 2, nrow = 2, common.legend = FALSE,
+          labels = c("A", "B", "C", "D"))  
+ggsave(p, filename = "fig2.png")
 ```
 
 # model months to peak IRG
@@ -1144,6 +1212,8 @@ Peaks$abs_Lat <- abs(Peaks$Lat)
 Peaks$log_colony_size <- log(Peaks$Count)
 Peaks$abs_months_to_IRG_spline <- abs(Peaks$months_to_IRG_spline)
 hist(Peaks$months_to_IRG_spline)
+table(Peaks$abs_months_to_IRG_spline)
+38/sum(table(Peaks$abs_months_to_IRG_spline))
 ```
 ## add lat long to rs
 ```{r}
@@ -1287,11 +1357,18 @@ no_accra <- Peaks[which(Peaks$geeID != 10),]
 Peaks$months_to_IRG_spline %>% #abs %>% 
   hist(breaks = 6, main = "", xlab = "Months to Peak IRG")
 table(Peaks$abs_months_to_IRG_spline)
+m0 <- glmer(abs(months_to_IRG_spline)~
+             1+
+             (1|geeID),
+          family = poisson(link = "log"),
+           data = sPeaks, # no_kasanka,#
+          na.action=na.fail)
+
 m1 = glmer(abs(months_to_IRG_spline)~
-             scale(abs_Lat)+
+             #scale(abs_Lat)+
              scale(entropy)+
-             scale(LOS)+
-             scale(avg_LOS)+
+             #scale(LOS)+
+             #scale(avg_LOS)+
              scale(amp_EVI)+
              #scale(auc_EVI)+ # too correlated
              scale(max_EVI)+
@@ -1299,7 +1376,7 @@ m1 = glmer(abs(months_to_IRG_spline)~
              # scale(daylength)+ #correlated with amp and min EVI
              # scale(log(count))+
              scale(log_colony_size)+
-             scale(ratio)+
+             # scale(ratio)+
              (1|geeID),
           family = poisson(link = "log"),
            data = sPeaks, # no_kasanka,#
@@ -1335,15 +1412,14 @@ plot(sims)
 ### interaction
 ```{r}
 # m1i = glmer(abs(months_to_IRG_spline)~
-#              (scale(avg_LOS)+
-#              #scale(amp_EVI)+
+#              (#scale(avg_LOS)+
+#              scale(amp_EVI)+
 #              #scale(auc_EVI)+
 #              scale(max_EVI)+
-#              scale(min_EVI)+
+#              scale(entropy)+
 #              # scale(daylength)+
 #              # scale(log(count))+
-#              scale(log_colony_size)+
-#              scale(ratio))^2+
+#              scale(log_colony_size))^2+
 #              (1|geeID),
 #           family = poisson(link = "log"),
 #            data = Peaks, #no_kasanka,#
