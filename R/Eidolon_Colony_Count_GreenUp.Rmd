@@ -164,6 +164,7 @@ for(i in 1:length(IDs)){
 ```
 
 
+
 # ggplot
 ```{r}
 ggplot(EVI, aes(x = month(time)))+
@@ -209,6 +210,57 @@ ggplot(data = Africa)+ geom_sf() +
   scale_color_gradient(low = "blue", high = "red", name = "Day of the Year")+
   xlab("Longitude")+ylab("Latitude") + guides(size = guide_legend(title = "Log(Peak Size)"))
 
+```
+
+# calculate entropy
+```{r}
+EVI$entropy <- NA
+EVI$seasonality <- NA
+EVI$maxEVImonth <- NA
+EVI$EVIannualsum <- NA
+
+EVI$year <- year(EVI$time)
+EVI$month <- month(EVI$time)
+EVI_monthly <- EVI %>% group_by(geeID, year, month) %>% 
+  summarise(EVI = mean(mean, na.rm = TRUE))
+
+for(i in 1:length(IDs)){
+  em <- EVI_monthly[EVI_monthly$geeID == IDs[i],]
+  # monthly mean
+  Rm <- em %>% group_by(month, year) %>% summarise(EVI = mean(EVI, na.rm = TRUE))
+  years <- unique(em$year)
+  for(j in 1:length(years)){
+    R <- mean(Rm$EVI[Rm$year == years[j]], na.rm = TRUE)
+  
+    # max month
+    Rmax <- max(Rm$EVI[Rm$year == years[j]], na.rm = TRUE)
+    
+    # annual sum
+    Ra <- sum(Rm$EVI[Rm$year == years[j]], na.rm = TRUE)
+    
+    # discrete probability distribution of monthly sum
+    ## month/annual
+    pm <- Rm$EVI[Rm$year == years[j]]/Ra
+  
+    # uniform distribution
+    qm <- 1/length(Rm$EVI[Rm$year == years[j]])
+    
+    # relative entropy
+    ## quantifies the extent of EVI concentration in the growing season
+    D <- sum(pm * log(pm/qm, base = 2), na.rm = TRUE)
+    
+    # seasonality  
+    S <- D * (R/Rmax)
+    
+    idx <- which(EVI$geeID == IDs[i] & EVI$year == years[j])
+    EVI$entropy[idx] <- D
+    EVI$seasonality[idx] <- S
+    EVI$maxEVImonth[idx] <- Rmax
+    EVI$EVIannualsum[idx] <- Ra
+  }
+}
+
+psych::pairs.panels(EVI[,c("entropy", "seasonality", "maxEVImonth", "EVIannualsum")])
 ```
 
 # Find corresponding EVI and precipitation data for all colony data
@@ -330,7 +382,9 @@ for(i in 1:length(IDs)){
               min_IRG = IRG[which.min(IRG)],
               max_EVI = pred[which.max(pred)],
               min_EVI = pred[which.min(pred)],
-              area_EVI = trapz(as.numeric(time),pred))
+              area_EVI = trapz(as.numeric(time),pred),
+              entropy = mean(entropy, na.rm = TRUE),
+              seasonality = mean(seasonality, na.rm = TRUE))
   summary(p)
   p$year <- year(p$time)
   p$geeID <- ID
@@ -366,6 +420,8 @@ save(colonies, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/regul
 
 # (rs$daylength) %>% plot
 ```  
+
+
 
 # Check peak colony month
 ## find colony peaks
@@ -434,6 +490,75 @@ for(i in 1:length(IDs)){
 Peaks$month <- round_date(Peaks$date, unit = "month")
 
 ```
+
+# strict peaks
+```{r}
+Strict_Peaks <- data.frame()
+IDs <- unique(colonies$geeID)
+i = 14
+for(i in 1:length(IDs)){
+  rc <- colonies[colonies$geeID == IDs[i],]
+  rc <- rc[order(rc$date),]
+  # find peaks
+  peak_time <- rc$date[findpeaks(rc$ratio)]
+  
+  # add any missed peaks at ratio of .6
+  peak_time <- unique(c(peak_time, na.omit(rc$date[rc$ratio > 0.6])))
+  
+  peaks <- rc[which(rc$date %in% peak_time),]
+  
+  # plot peaks
+  with(rc, plot(date, ratio, type = "o", pch = 16,
+                col = as.numeric(is.na(Observer))+1,
+                main = rc$Location[1]))
+  abline(v = peaks$date, lty = 2) 
+  
+  # remove peaks with ratios below 0.6
+  peaks <- peaks[which(peaks$ratio > 0.6),]
+  
+  
+  # remove peaks that are within 10 months
+  while(any(diff(peaks$date) < 300)){
+    
+    too_close <- which(diff(peaks$date) < 300)[1]
+    
+    # if sequential peaks with ratio = 1, then take the middle
+    if(all(peaks$ratio[too_close:(too_close+1)] == 1)){
+      idx <- which((peaks$date[too_close:(too_close+10)] - peaks$date[too_close]) < 180) 
+      tmp <- rle(peaks$ratio[too_close:(too_close+(length(idx)-1))])
+      ctmp <- rle(peaks$Count[too_close:(too_close+(length(idx)-1))])
+      if(tmp$lengths[1] == ctmp$lengths[1]){
+        # even
+        if((tmp$lengths[1] %% 2) == 0){
+          keep <- round(median(1:tmp$lengths[1]),0)
+          kick <- (1:tmp$lengths[1])[-keep]
+          peaks <- peaks[-(too_close+(kick-1)),]
+        }
+        # odd
+        if((tmp$lengths[1] %% 2) != 0){
+          keep <- median(1:tmp$lengths[1])
+          kick <- (1:tmp$lengths[1])[-keep]
+          peaks <- peaks[-(too_close+(kick-1)),]
+        }
+      }
+        
+    }
+    # update too_close
+    too_close <- which(diff(peaks$date) < 300)[1]
+    
+    # keep peak with higher ratio
+    if(any(peaks$ratio[too_close:(too_close+1)] != 1))
+    kick <- which.min(peaks$ratio[too_close:(too_close+1)])
+    peaks <- peaks[-(too_close+kick-1),]
+  }
+  abline(v = peaks$date, lwd = 2, col = 4) 
+  Strict_Peaks <- rbind(Strict_Peaks, peaks)
+}
+Strict_Peaks$month <- round_date(Strict_Peaks$date, unit = "month")
+
+```
+
+
 
 # plot colony and RS peaks 
 ```{r}
@@ -546,7 +671,7 @@ ggplot(data = Africa)+ geom_sf() +
   facet_wrap(~month)+
   xlab("Longitude")+ylab("Latitude") + guides(size = guide_legend(title = "Log(Peak Size)"))
 
-save(avg_peaks, Peaks, reg_colonies, Africa, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
+save(avg_peaks, Peaks, Strict_Peaks, reg_colonies, Africa, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
 load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
 ```
 
@@ -1092,7 +1217,8 @@ for(i in 1:length(IDs)){
 for(i in 1:nrow(Peaks)){
   idx <- which(Peaks$geeID[i] == rs$geeID & Peaks$year[i] == rs$year)
   Peaks$amp[i] <-     max(rs$amp[idx], na.rm = TRUE)
-  # Peaks$seasonality[i] <- rs$seasonality[idx]
+  #Peaks$seasonality[i] <- max(rs$seasonality[idx]
+  Peaks$entropy[i] <- rs$entropy[idx]
   Peaks$max_EVI[i] <- max(rs$max_EVI[idx], na.rm = TRUE)
   Peaks$min_EVI[i] <- max(rs$min_EVI[idx], na.rm = TRUE)
   Peaks$LOS[i] <-     max(rs$LOS[idx], na.rm = TRUE)
@@ -1113,8 +1239,9 @@ rs
 
 ```{r}
 
-psych::pairs.panels(Peaks[,c("abs_months_to_IRG_spline", "log_colony_size", 
-                             "ratio", "daylength", "max_EVI", "min_EVI",
+psych::pairs.panels(Peaks[,c("abs_months_to_IRG_spline", "log_colony_size",
+                             "abs_Lat",
+                             "ratio", "entropy", "max_EVI", "min_EVI",
                              "auc_EVI", "amp_EVI", "amp", "LOS", "avg_LOS")])
 ```
 
@@ -1123,7 +1250,7 @@ psych::pairs.panels(Peaks[,c("abs_months_to_IRG_spline", "log_colony_size",
 # moran's I
 library(tidyverse)
 library(gridExtra)
-library(NLMR)
+# library(NLMR)
 library(DHARMa)
 
 # unique_peaks <- Peaks %>% group_by(Lat, Long) %>% 
@@ -1152,6 +1279,7 @@ library(lme4)
 library(MuMIn)
 summary(Peaks)
 
+sPeaks <- Peaks[which(Peaks$Date %in% Strict_Peaks$Date & Peaks$ratio %in% Strict_Peaks$ratio),]
 
 Peaks[which(is.na(Peaks$min_EVI)),]
 
@@ -1162,6 +1290,8 @@ Peaks$months_to_IRG_spline %>% #abs %>%
   hist(breaks = 6, main = "", xlab = "Months to Peak IRG")
 table(Peaks$abs_months_to_IRG_spline)
 m1 = glmer(abs(months_to_IRG_spline)~
+             scale(abs_Lat)+
+             scale(entropy)+
              scale(LOS)+
              scale(avg_LOS)+
              scale(amp_EVI)+
@@ -1174,14 +1304,14 @@ m1 = glmer(abs(months_to_IRG_spline)~
              scale(ratio)+
              (1|geeID),
           family = poisson(link = "log"),
-           data = Peaks, #no_kasanka,#
+           data = sPeaks, # no_kasanka,#
           na.action=na.fail)
 summary(m1)
 r.squaredGLMM(m1)
 sims <- DHARMa::simulateResiduals(m1)
 plot(sims)
 dd = dredge(m1)
-dd[1]
+dd
 
 # write.table(dd, file = "../output/dredge_absmonthstoIRG.txt")
 ```
@@ -1190,14 +1320,14 @@ dd[1]
 m1_best = glmer(abs(months_to_IRG_spline)~
              #scale(avg_LOS)+
              scale(max_EVI)+
-             scale(amp_EVI)+
-             # scale(log_colony_size)+
+             scale(entropy)+
+             scale(log_colony_size)+
              # scale(daylength)+
              # scale(min_EVI)+
                # scale(ratio)+
              (1|geeID),
           family = poisson(link = "log"),
-           data = Peaks, #no_kasanka,#
+           data = Peaks,#
           na.action=na.fail)
 summary(m1_best)
 r.squaredGLMM(m1_best)
@@ -1242,11 +1372,11 @@ i = 1
 for(i in 1:length(IDs)){
   df <- Peaks[Peaks$geeID != IDs[i],]
   
-  fits[[i]] <- lmer((months_to_IRG_spline) ~ 
+  fits[[i]] <- lmer((abs_months_to_IRG_spline) ~ 
                      #scale(avg_LOS)+
                      scale(max_EVI)+
-                     scale(amp_EVI)+
-                     # scale(ratio)+
+                     scale(entropy)+
+                     scale(log_colony_size)+
                    (1|geeID), 
              data = df)
   summary(fits[[i]])
