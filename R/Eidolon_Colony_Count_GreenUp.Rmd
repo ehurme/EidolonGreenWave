@@ -599,51 +599,51 @@ for(i in 1:length(IDs)){
 # Add start and end of season estimates to each peak
 ## do we want to reduce resolution of all points?
 ```{r}
-Peaks$sos <- NA
-Peaks$eos <- NA
-Peaks$months_to_SOS <- NA
-Peaks$months_to_EOS <- NA
-Peaks$sos_res <- NA
-
-years <- unique(Peaks$year)
-i = 1
-for(i in 1:length(years)){
-  idx <- which(Peaks$year == years[i])
-  p <- Peaks[idx,]
-
-  sos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/SOS_YEARS/", years[i], "_SOS_DOY.tif"))
-  eos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/EOS_YEARS/", years[i], "_EOS_DOY.tif"))
-  xy <- coordinates(cbind(p$Long, p$Lat))
-
-  while(any(is.na(Peaks$sos[idx]))){
-    Peaks$sos[idx] <- raster::extract(x = sos, y = xy)
-    Peaks$eos[idx] <- raster::extract(eos, xy)
-
-    sos <- aggregate(sos, fact = 10)
-    eos <- aggregate(eos, fact = 10)
-  }
-  Peaks$sos_res[idx] <- res(sos)[1]
-  print(res(sos))
-  print(res(eos))
-  # plot(sos2)
-  # plot(eos2)
-
-  Peaks$months_to_SOS[idx] <- round(difftime(Peaks$month[idx],
-                                      as.Date(Peaks$sos[idx],
-                                              origin = paste0(year(Peaks$month),"-01-01")),
-                                      unit = "weeks")/4, 0) %>% as.numeric
-  Peaks$months_to_SOS[which(Peaks$months_to_SOS > 6)] <- round(yday(Peaks$month) - Peaks$sos)
-
-
-  sos <- {}
-  eos <- {}
-}
-
-hist(Peaks$eos)
-hist(Peaks$sos)
-
-save(Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/peaks_sos.RData")
-load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/peaks_sos.RData")
+# Peaks$sos <- NA
+# Peaks$eos <- NA
+# Peaks$months_to_SOS <- NA
+# Peaks$months_to_EOS <- NA
+# Peaks$sos_res <- NA
+# 
+# years <- unique(Peaks$year)
+# i = 1
+# for(i in 1:length(years)){
+#   idx <- which(Peaks$year == years[i])
+#   p <- Peaks[idx,]
+# 
+#   sos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/SOS_YEARS/", years[i], "_SOS_DOY.tif"))
+#   eos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/EOS_YEARS/", years[i], "_EOS_DOY.tif"))
+#   xy <- coordinates(cbind(p$Long, p$Lat))
+# 
+#   while(any(is.na(Peaks$sos[idx]))){
+#     Peaks$sos[idx] <- raster::extract(x = sos, y = xy)
+#     Peaks$eos[idx] <- raster::extract(eos, xy)
+# 
+#     sos <- aggregate(sos, fact = 10)
+#     eos <- aggregate(eos, fact = 10)
+#   }
+#   Peaks$sos_res[idx] <- res(sos)[1]
+#   print(res(sos))
+#   print(res(eos))
+#   # plot(sos2)
+#   # plot(eos2)
+# 
+#   Peaks$months_to_SOS[idx] <- round(difftime(Peaks$month[idx],
+#                                       as.Date(Peaks$sos[idx],
+#                                               origin = paste0(year(Peaks$month),"-01-01")),
+#                                       unit = "weeks")/4, 0) %>% as.numeric
+#   Peaks$months_to_SOS[which(Peaks$months_to_SOS > 6)] <- round(yday(Peaks$month) - Peaks$sos)
+# 
+# 
+#   sos <- {}
+#   eos <- {}
+# }
+# 
+# hist(Peaks$eos)
+# hist(Peaks$sos)
+# 
+# save(Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/peaks_sos.RData")
+# load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/peaks_sos.RData")
 ```
 
 # plot peaks on map by month
@@ -671,8 +671,7 @@ ggplot(data = Africa)+ geom_sf() +
   facet_wrap(~month)+
   xlab("Longitude")+ylab("Latitude") + guides(size = guide_legend(title = "Log(Peak Size)"))
 
-save(avg_peaks, Peaks, Strict_Peaks, reg_colonies, Africa, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
-load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
+
 ```
 
 # Time to peak
@@ -833,6 +832,9 @@ wilcox.test(Peaks$months_to_EVI_spline, Peaks$months_to_IRG_spline)
 wilcox.test(Peaks$months_to_EOS_spline, Peaks$months_to_IRG_spline)
 wilcox.test(Peaks$months_to_precip_spline, Peaks$months_to_IRG_spline)
 summary(Peaks)
+
+save(avg_peaks, Peaks, Strict_Peaks, reg_colonies, Africa, EVI, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
 ```
 
 # plot each peak and env data around it
@@ -874,6 +876,61 @@ for(i in 1:nrow(Peaks)){
 }
 
 ```
+# example EVI
+Lamin 2014 - 2
+Soutuba 2015 - 19
+Naimey 2015 - 42
+Sunyani 2015 - 22
+Benin City 2014 
+Kasanka 2010 - 54
+Ngamba Is 2014 - 56
+
+2014 - 2016
+
+```{r}
+layout(cbind(c(1,2), c(3,4)))
+idx <- c(2, 19, 42, 22, 54, 56)
+for(i in idx){
+  p <- Peaks[i,]
+  c <- colonies[colonies$geeID == p$geeID[1],]
+  e <- EVI[EVI$geeID == p$geeID[1],]
+  e$date <- as.Date(e$time)
+  
+  time <- as.Date(e$time)
+  evi <- e$mean
+  spl <- smooth.spline(x = time, y = evi)
+  
+  pred <- predict(spl)
+  pred.prime <- predict(spl, deriv = 1)
+  pred.prime$y01 <- rescale(pred.prime$y, new.min = -0.5, new.max = 0.5)
+  plot(p$month, p$ratio, col = 0, frame.plot = FALSE,
+       xlim = c(ymd("2014-01-01"), ymd("2016-01-01")),
+       # xlim = c(min(p$month) - years(1)-months(1), 
+       #          max(p$month) + years(1)+months(1)), 
+       ylim = c(-0.5, 1), 
+       xlab = "time",
+       ylab = "EVI/ratio", 
+       main = paste0(p$Location[1], ", Entropy: ", round(p$entropy, 2)))
+  abline(v = seq.Date(as.Date("2000-01-01"), 
+                      as.Date("2021-01-01"), by = "year"), 
+         col = "gray", lty = 2)
+  abline(h = 0)
+  lines(c$date, c$ratio, lty = 3, col = "gray")
+  lines(e$date, e$mean, col = 3)
+  lines(pred, col = "darkgreen")
+  lines(pred.prime$x, pred.prime$y01, col = "darkred")
+  # abline(v = p$LOS_start, col = 2, lty = 2, lwd = 2)
+  abline(v = p$IRG_spline, col = 2)
+  abline(v = p$EVI_spline, col = 3)
+  # abline(v = p$LOS_end, col = "purple", lty = 2, lwd = 2)
+  # abline(v = p$EOS_spline, col = "purple")
+  
+  # legend("topright", legend = c("Peak Colony Size", ))
+}
+
+```
+
+
 
 ```{r}
 library(circular)
@@ -1134,10 +1191,7 @@ ggplot(CC_mlt, aes(x = variable,
 ```
 
 # model months to peak IRG
-```{r}
-save(Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
-load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
-```
+
 
 
 ## prep data
@@ -1234,8 +1288,13 @@ Peaks$abs_Lat <- abs(Peaks$Lat)
 summary(Peaks)
 Peaks[which(is.na(Peaks$min_EVI)),]
 rs
-```
 
+
+```
+```{r}
+save(Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
+```
 
 ```{r}
 
