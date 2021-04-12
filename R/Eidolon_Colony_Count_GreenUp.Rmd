@@ -489,11 +489,11 @@ for(i in 1:length(years)){
   sos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/SOS_YEARS/", years[i], "_SOS_DOY.tif"))
   eos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/EOS_YEARS/", years[i], "_EOS_DOY.tif"))
   xy <- coordinates(cbind(p$Long, p$Lat))
-  
+
   while(any(is.na(Peaks$sos[idx]))){
     Peaks$sos[idx] <- raster::extract(x = sos, y = xy)
     Peaks$eos[idx] <- raster::extract(eos, xy)
-    
+
     sos <- aggregate(sos, fact = 10)
     eos <- aggregate(eos, fact = 10)
   }
@@ -517,6 +517,8 @@ for(i in 1:length(years)){
 hist(Peaks$eos)
 hist(Peaks$sos)
 
+save(Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/peaks_sos.RData")
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/peaks_sos.RData")
 ```
 
 # plot peaks on map by month
@@ -1008,7 +1010,7 @@ ggplot(CC_mlt, aes(x = variable,
 
 # model months to peak IRG
 ```{r}
-save(Peaks, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
+save(Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
 load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
 ```
 
