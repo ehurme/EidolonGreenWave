@@ -638,6 +638,22 @@ for(i in 1:length(IDs)){
 }
 
 ```
+# summarize sd and mean date of phenology and peak count
+```{r}
+rs_max_sum <- rs_max %>% group_by(geeID) %>%
+  summarise(EVI_month = round(circ.mean.month(month(round_date(EVI_spline, unit = "months"))),1),
+            EVI_intensity = round(circ.intensity.month(month(round_date(EVI_spline, unit = "months"))),1),
+            IRG_month = round(circ.mean.month(month(round_date(IRG_spline, unit = "months"))),1),
+            IRG_intensity = round(circ.intensity.month(month(round_date(IRG_spline, unit = "months"))),1))
+```
+
+
+```{r}
+plot(rs_max_sum$geeID, rs_max_sum$EVI_intensity, type = "o", col = 3)
+points(rs_max_sum$geeID, rs_max_sum$IRG_intensity, type = "o", col = 2)
+
+```
+
 
 # Add start and end of season estimates to each peak
 ## do we want to reduce resolution of all points?
@@ -692,21 +708,31 @@ for(i in 1:length(IDs)){
 # 
 # hist(Peaks$eos)
 # hist(Peaks$sos)
-<<<<<<< HEAD
 
-=======
 # 
 # save(Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/peaks_sos.RData")
 # load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/peaks_sos.RData")
->>>>>>> 8b456203e316170af112c071b4ff49be51c2f9c6
+
 ```
 
 # plot peaks on map by month
 ## one map
 ```{r}
-avg_peaks <- Peaks %>% group_by(geeID, Location) %>% 
-  summarise(count = mean(Count), Lat = Lat[1], Long = Long[1], month = round(mean(month(month)),0))
+circ.intensity.month(month(round_date(Peaks$month[Peaks$geeID == 2], unit = "months")))
 
+avg_peaks <- 
+  Peaks %>% group_by(geeID, Location) %>% 
+  summarise(count = mean(Count), Lat = Lat[1], Long = Long[1], 
+            month = round(circ.mean.month(month(round_date(date, unit = "months"))),0), 
+            intensity = round(circ.intensity.month(month(round_date(date, unit = "months"))),2), 
+            n = n())
+avg_peaks
+plot(rs_max_sum$EVI_intensity, avg_peaks$intensity, cex = avg_peaks$n)
+plot(rs_max_sum$IRG_intensity, avg_peaks$intensity, cex = avg_peaks$n)
+```
+
+
+```{r}
 ggplot(data = Africa)+ geom_sf() +
   geom_point(data = avg_peaks, aes(x = Long, y = Lat, col = month, 
                                size = log10(count))) +

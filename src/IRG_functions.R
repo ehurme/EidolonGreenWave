@@ -304,6 +304,16 @@ circ.mean <- function (x){
   circmean
 }
 
+# https://gist.github.com/jonesor/132f531a520c3b331543
+circ.mean2 <- function(m,int){
+  rad.m    = m*(360/int)*(pi/180)
+  mean.cos = mean(cos(rad.m))
+  mean.sin = mean(sin(rad.m))
+  x.deg    = atan(mean.sin/mean.cos)*(180/pi)
+  
+  return(x.deg/(360/int))
+}
+
 # sumNA(c(NA), na.rm = TRUE)
 
 circ.mean.yday <- function(days){
@@ -315,6 +325,18 @@ circ.mean.yday <- function(days){
   return(direction)
 }
 
+circ.mean.month <- function(months){
+  conv <- 2*pi/12
+  d <- mean(exp(conv*(months-1)*1i), na.rm = TRUE)
+  direction <- Arg(d)/conv%%12  ## 'direction', i.e. average day of the year
+  if(direction < 0)direction <- direction+12
+  # Mod(d)                ## 'intensity'
+  return(direction)
+}
+
+circ.mean.month(11:12)
+circ.intensity.month(1)
+
 # circ.mean.yday <- function(days){
 #   conv <- 2*pi/365
 #   res1 <- circ.mean(conv*(days-1))/conv
@@ -322,8 +344,8 @@ circ.mean.yday <- function(days){
 #   return(angle)
 # }
 
-circ.intensity.yday <- function(days){
-  conv <- 2*pi/365
+circ.intensity.month <- function(days){
+  conv <- 2*pi/12
   d <- mean(exp(conv*(days-1)*1i), na.rm = TRUE)
   # direction <- 365+Arg(d)/conv%%365  ## 'direction', i.e. average day of the year
   intensity <- Mod(d)                ## 'intensity'
