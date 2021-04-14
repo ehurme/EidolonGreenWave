@@ -327,15 +327,13 @@ circ.mean.yday <- function(days){
 
 circ.mean.month <- function(months){
   conv <- 2*pi/12
-  d <- mean(exp(conv*(months-1)*1i), na.rm = TRUE)
+  d <- mean(exp(conv*(months)*1i), na.rm = TRUE)
   direction <- Arg(d)/conv%%12  ## 'direction', i.e. average day of the year
   if(direction < 0)direction <- direction+12
   # Mod(d)                ## 'intensity'
   return(direction)
 }
 
-circ.mean.month(11:12)
-circ.intensity.month(1)
 
 # circ.mean.yday <- function(days){
 #   conv <- 2*pi/365
@@ -346,10 +344,15 @@ circ.intensity.month(1)
 
 circ.intensity.month <- function(days){
   conv <- 2*pi/12
-  d <- mean(exp(conv*(days-1)*1i), na.rm = TRUE)
+  d <- mean(exp(conv*(days)*1i), na.rm = TRUE)
   # direction <- 365+Arg(d)/conv%%365  ## 'direction', i.e. average day of the year
   intensity <- Mod(d)                ## 'intensity'
   return(intensity)
 }
 
+circ.mean.month(11:12)
+circ.intensity.month(1)
+
+
 deg2rad <- function(deg) {((deg * pi) / (365/2))}
+

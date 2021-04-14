@@ -27,6 +27,7 @@ library(janitor) # clean column names
 library(zoo) # interpolation
 library(raster)
 library(circular)
+library(CircMLE)
 
 # time series
 library(lubridate)
@@ -608,7 +609,9 @@ rs_max <- rs %>% group_by(year, geeID) %>%
   summarise(EVI_spline = EVI_spline[which.max(max_EVI)],
             IRG_spline = IRG_spline[which.max(max_IRG)],
             precip_spline = precip_spline[1],
-            aet_spline = aet_spline[which.max(max_aet)]) # ,
+            # aet_spline = aet_spline[which.max(max_aet)],
+            entropy = entropy[1],
+            max_EVI = max_EVI[which.max(max_EVI)]) # ,
             # daylength_month = rs$daylength_month[1])
 
 for(i in 1:length(IDs)){
@@ -622,7 +625,7 @@ for(i in 1:length(IDs)){
   # abline(v = 2000:2020, lty = 2)
   points(r$year, month(r$EVI_spline), type ="o", pch = 16, col = 3)
   points(r$year, month(r$precip_spline), type = "o", pch = 16, col = 4)
-  points(r$year, month(r$aet_spline), type = "o", pch = 16, col = 5)
+  # points(r$year, month(r$aet_spline), type = "o", pch = 16, col = 5)
   # points(r$year, month(r$daylength_month), type = "o", pch = 16, col = "gold")
   points(x = year(p$month), y = month(p$month), col = 1, pch = 16, cex = 2)
   
@@ -642,18 +645,50 @@ for(i in 1:length(IDs)){
 ```{r}
 rs_max_sum <- rs_max %>% group_by(geeID) %>%
   summarise(EVI_month = round(circ.mean.month(month(round_date(EVI_spline, unit = "months"))),1),
+            EVI_month_circ = round(as.numeric(mean.circular(x = circular(month(round_date(EVI_spline, unit = "months"))*360/12, 
+                                                      type = "angles", units = "degrees", modulo = "2pi")))*12/(360),1),
             EVI_intensity = round(circ.intensity.month(month(round_date(EVI_spline, unit = "months"))),1),
+            EVI_intensity_circ = round(circular::rho.circular(x = circular(month(round_date(EVI_spline, unit = "months"))*360/12, 
+                                                      type = "angles", units = "degrees", modulo = "2pi")),1),
+            EVI_HR = HR_test(data = circular(month(round_date(EVI_spline, unit = "months"))*2*pi/12, 
+                                                      type = "angles", units = "radians", modulo = "2pi"))[1],
+            EVI_HR_p = HR_test(data = circular(month(round_date(EVI_spline, unit = "months"))*2*pi/12, 
+                                                      type = "angles", units = "radians", modulo = "2pi"))[2],
             IRG_month = round(circ.mean.month(month(round_date(IRG_spline, unit = "months"))),1),
-            IRG_intensity = round(circ.intensity.month(month(round_date(IRG_spline, unit = "months"))),1))
+            IRG_intensity = round(circ.intensity.month(month(round_date(IRG_spline, unit = "months"))),1),
+            precip_month = round(circ.mean.month(month(round_date(precip_spline, unit = "months"))),1),
+            precip_intensity = round(circ.intensity.month(month(round_date(precip_spline, unit = "months"))),1),
+            
+            entropy = entropy[which.max(entropy)])
+rs_max_sum
+
+HR_test(data = circular(month(round_date(rs_max$EVI_spline, unit = "months"))*2*pi/12, 
+                                                      type = "angles", units = "radians", modulo = "2pi"))
+
+circular((1:5)*360/12, type = "angles", units = "degrees")
+round(as.numeric(circular::mean.circular(x = circular((c(9:12))*360/12, type = "angles", units = "degrees", modulo = "2pi")))*12/(360),1)
+
+rho.circular(x = circular((c(9:12))*360/12, type = "angles", units = "degrees", modulo = "2pi"))
+
+round(circ.mean.month(9:12),1)
+mean(9:12)
 ```
 
 
 ```{r}
-plot(rs_max_sum$geeID, rs_max_sum$EVI_intensity, type = "o", col = 3)
+rs_max_sum <- rs_max_sum[order(rs_max_sum$geeID),]
+plot(rs_max_sum$geeID, rs_max_sum$EVI_intensity, type = "o", col = 3,
+     ylab = "angular concentration")
 points(rs_max_sum$geeID, rs_max_sum$IRG_intensity, type = "o", col = 2)
-
+points(rs_max_sum$geeID, rs_max_sum$precip_intensity, type = "o", col = 4)
 ```
-
+```{r}
+rs_max_sum <- rs_max_sum[order(rs_max_sum$entropy),]
+plot(rs_max_sum$entropy, rs_max_sum$EVI_intensity, type = "o", col = 3,
+     ylab = "angular concentration")
+points(rs_max_sum$entropy, rs_max_sum$IRG_intensity, type = "o", col = 2)
+points(rs_max_sum$entropy, rs_max_sum$precip_intensity, type = "o", col = 4)
+```
 
 # Add start and end of season estimates to each peak
 ## do we want to reduce resolution of all points?
@@ -673,19 +708,19 @@ points(rs_max_sum$geeID, rs_max_sum$IRG_intensity, type = "o", col = 2)
 #   sos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/SOS_YEARS/", years[i], "_SOS_DOY.tif"))
 #   eos <- raster(paste0("C:/Users/Edward/MODIStsp/LandSurfacePhenology_Adole2019/EOS_YEARS/", years[i], "_EOS_DOY.tif"))
 #   xy <- coordinates(cbind(p$Long, p$Lat))
-<<<<<<< HEAD
+#<<<<<<< HEAD
 #   
 #   while(any(is.na(Peaks$sos[idx]))){
 #     Peaks$sos[idx] <- raster::extract(x = sos, y = xy)
 #     Peaks$eos[idx] <- raster::extract(eos, xy)
 #     
-=======
+#=======
 # 
 #   while(any(is.na(Peaks$sos[idx]))){
 #     Peaks$sos[idx] <- raster::extract(x = sos, y = xy)
 #     Peaks$eos[idx] <- raster::extract(eos, xy)
 # 
->>>>>>> 8b456203e316170af112c071b4ff49be51c2f9c6
+#>>>>>>> 8b456203e316170af112c071b4ff49be51c2f9c6
 #     sos <- aggregate(sos, fact = 10)
 #     eos <- aggregate(eos, fact = 10)
 #   }
@@ -1383,6 +1418,9 @@ for(i in 1:nrow(Peaks)){
   Peaks$entropy[i] <- rs$entropy[idx]
   Peaks$max_EVI[i] <- max(rs$max_EVI[idx], na.rm = TRUE)
   Peaks$min_EVI[i] <- max(rs$min_EVI[idx], na.rm = TRUE)
+  Peaks$max_IRG[i] <- max(rs$max_IRG[idx], na.rm = TRUE)
+  Peaks$min_IRG[i] <- max(rs$min_IRG[idx], na.rm = TRUE)
+  
   Peaks$LOS[i] <-     max(rs$LOS[idx], na.rm = TRUE)
   Peaks$avg_LOS[i] <- max(rs$avg_LOS[idx], na.rm = TRUE)
   Peaks$auc_EVI[i] <- max(rs$area_EVI[idx], na.rm = TRUE)
@@ -1405,11 +1443,14 @@ load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
 ```
 
 ```{r}
-
+Peaks$IRG_amp <- Peaks$max_IRG - Peaks$min_IRG
 psych::pairs.panels(Peaks[,c("abs_months_to_IRG_spline", "log_colony_size",
                              "abs_Lat",
-                             "ratio", "entropy", "max_EVI", "min_EVI",
+                             "ratio", "entropy", "max_EVI", "min_EVI", "max_IRG", "min_IRG", 
+                             "IRG_amp",
                              "auc_EVI", "amp_EVI", "amp", "LOS", "avg_LOS")])
+
+### add to supplement - corrplot
 ```
 
 ###### check for spatial autocorrelation
@@ -1460,7 +1501,7 @@ m0 <- glmer(abs(months_to_IRG_spline)~
              1+
              (1|geeID),
           family = poisson(link = "log"),
-           data = sPeaks, # no_kasanka,#
+           data = Peaks, # no_kasanka,#
           na.action=na.fail)
 
 m1 = glmer(abs(months_to_IRG_spline)~
@@ -1468,6 +1509,7 @@ m1 = glmer(abs(months_to_IRG_spline)~
              scale(entropy)+
              #scale(LOS)+
              #scale(avg_LOS)+
+             scale(IRG_amp)+
              scale(amp_EVI)+
              #scale(auc_EVI)+ # too correlated
              scale(max_EVI)+
@@ -1478,7 +1520,7 @@ m1 = glmer(abs(months_to_IRG_spline)~
              # scale(ratio)+
              (1|geeID),
           family = poisson(link = "log"),
-           data = sPeaks, # no_kasanka,#
+           data = Peaks, # no_kasanka,#
           na.action=na.fail)
 summary(m1)
 r.squaredGLMM(m1)
@@ -1494,6 +1536,7 @@ dd
 m1_best = glmer(abs(months_to_IRG_spline)~
              #scale(avg_LOS)+
              scale(max_EVI)+
+               # scale(IRG_amp)+
              scale(entropy)+
              scale(log_colony_size)+
              # scale(daylength)+
