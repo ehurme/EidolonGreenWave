@@ -94,6 +94,7 @@ for(i in 1:length(values(s))){
   
   # discrete probability distribution of monthly sum
   ## month/annual
+  
   pm <- Rm/Ra
   raster::values(p)[i] <- Ra#R/Rmax
   
