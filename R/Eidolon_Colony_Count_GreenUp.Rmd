@@ -640,6 +640,8 @@ for(i in 1:length(IDs)){
   
 }
 
+
+
 ```
 # summarize sd and mean date of phenology and peak count
 ```{r}
@@ -656,11 +658,19 @@ rs_max_sum <- rs_max %>% group_by(geeID) %>%
                                                       type = "angles", units = "radians", modulo = "2pi"))[2],
             IRG_month = round(circ.mean.month(month(round_date(IRG_spline, unit = "months"))),1),
             IRG_intensity = round(circ.intensity.month(month(round_date(IRG_spline, unit = "months"))),1),
+            IRG_HR = HR_test(data = circular(month(round_date(IRG_spline, unit = "months"))*2*pi/12, 
+                                                      type = "angles", units = "radians", modulo = "2pi"))[1],
+            IRG_HR_p = HR_test(data = circular(month(round_date(IRG_spline, unit = "months"))*2*pi/12, 
+                                                      type = "angles", units = "radians", modulo = "2pi"))[2],
             precip_month = round(circ.mean.month(month(round_date(precip_spline, unit = "months"))),1),
             precip_intensity = round(circ.intensity.month(month(round_date(precip_spline, unit = "months"))),1),
-            
+            precip_HR = HR_test(data = circular(month(round_date(precip_spline, unit = "months"))*2*pi/12, 
+                                                      type = "angles", units = "radians", modulo = "2pi"))[1],
+            precip_HR_p = HR_test(data = circular(month(round_date(precip_spline, unit = "months"))*2*pi/12, 
+                                                      type = "angles", units = "radians", modulo = "2pi"))[2],
             entropy = entropy[which.max(entropy)])
 rs_max_sum
+write.csv(rs_max_sum)
 
 HR_test(data = circular(month(round_date(rs_max$EVI_spline, unit = "months"))*2*pi/12, 
                                                       type = "angles", units = "radians", modulo = "2pi"))
@@ -672,6 +682,18 @@ rho.circular(x = circular((c(9:12))*360/12, type = "angles", units = "degrees", 
 
 round(circ.mean.month(9:12),1)
 mean(9:12)
+View(rs_max_sum)
+round(rs_max_sum[,"EVI_HR"],1)
+```
+
+# Table S3
+```{r}
+EVI <- rs %>% group_by(geeID) %>% 
+  summarise(EVI = paste0(round(min_EVI[which.min(min_EVI)],2), " - ",
+    round(max_EVI[which.max(max_EVI)],2)),
+    IRG = EVI = paste0(round(min_EVI[which.min(min_EVI)],2), " - ",
+    round(max_EVI[which.max(max_EVI)],2)))
+View(EVI)
 ```
 
 
