@@ -15,40 +15,14 @@ Green up date is estimated by the MCD12Q2.006 Land Cover Dynamics Yearly Global 
 ```{r setup, echo=FALSE}
 # packrat::init()
 # basic toolkit
-library(ggplot2)
-library(ggformula)
-library(dplyr) 
-library(tidyverse) # piping
-library(scales) 
-library(viridisLite) # nice colors
-library(ggpubr) # nice plotting
-library(readxl) # read xls
-library(janitor) # clean column names
-library(zoo) # interpolation
-library(raster)
-library(circular)
-library(CircMLE)
-
-# time series
-library(lubridate)
-
-# math
-require(pracma) # area under the curve
-
-# Mapping
-library(rnaturalearth)
-library(rnaturalearthdata)
-
-# Species occurrence data
-library(rgbif)
-library(rinat)
-
-# modeling
-library(mgcv)
-library(lme4)
-library(MuMIn)
-# library(tidymodels)
-library(vip)
+library(pacman)
+p_load(ggplot2, dplyr, tidyverse,
+       scales, viridisLite, ggpubr, readxl, janitor, 
+       zoo, circular, CircMLE, lubridate, # toolkit
+       raster, rnaturalearth, rnaturalearthdata, # maps
+       rgbif, rinat, # species occurrence
+       mgcv, lme4, MuMIn, tidymodels, vip, # modeling
+       update = TRUE) 
 
 
 source("../src/IRG_functions.R")
@@ -63,6 +37,8 @@ load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/colony_count.RData")
 ```{r}
 colonies$Count[colonies$Location == "Kasanka"] %>% summary
 
+
+
 count_sum <- colonies %>% group_by(Country, Location) %>% 
   summarise(start = min(date), end = max(date), 
             duration = round((max(date)-min(date))/365,1),
@@ -70,6 +46,14 @@ count_sum <- colonies %>% group_by(Country, Location) %>%
     min_max = paste0(round(min(Count, na.rm = TRUE), digits = -2), "-", 
                              round(max(Count, na.rm = TRUE), -2)))
 write.csv(count_sum)
+```
+
+Acknowledgements
+```{r}
+ack <- unique(paste0(colonies$Country, ": ", colonies$Observer))
+ack[order(ack)]
+
+write.csv(ack, file = )
 ```
 
 
@@ -238,19 +222,44 @@ batdf_max_mean <- batdf_max %>% group_by(Country, Location) %>%
             peak_size = mean(count),
             Lat = Lat[1],
             Long = Long[1],
-            yday = round(circ.mean.month(month)))
+            month = round(circ.mean.month(month)))
 
-batdf_max_mean
+batdf_max_mean$month[which(batdf_max_mean$month == 0)] <- 12
 
 ggplot(data = Africa)+ geom_sf() +
   geom_point(data = batdf_max_mean, aes(x = Long, y = Lat, 
-                               size = log10(peak_size), color = yday)) +
+                               size = log10(peak_size), color = month)) +
   coord_sf(xlim = c(-20, 45), ylim = c(-20, 20), expand = FALSE) + 
   theme_classic() +
   viridis::scale_color_viridis(name = "Month")+
   #scale_color_gradient(low = "blue", high = "red", name = "Month")+
   xlab("Longitude")+ylab("Latitude") + guides(size = guide_legend(title = "Log(Peak Size)"))
 
+
+```
+
+## Fig 1
+```{r}
+require(scales)
+options(scipen=10000)
+fig1 <- 
+  ggplot(data = Africa)+ geom_sf() +
+  #coord_sf(xlim = c(-20, 45), ylim = c(-20, 20), expand = FALSE) + 
+  xlim(c(-20, 45))+ylim(c(-20, 20))+
+  geom_point(data = batdf_max_mean, aes(Long, Lat, size = peak_size, col = month), 
+             inherit.aes = FALSE) +
+  scale_size_continuous(limits = c(min(batdf_max_mean$peak_size),
+                                   max(batdf_max_mean$peak_size)), 
+                        breaks = c(6000, 60000, 600000, 6000000),
+                        range = c(2, 7))+
+  labs(x = 'Longitude', y = 'Latitude')+
+  theme_classic() +
+  theme(legend.position = "bottom")+
+  guides(size = guide_legend(nrow = 2, title = "Avg Peak Size"))+
+  viridis::scale_color_viridis(name = "Month", option = "D")
+fig1
+ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map.png")
+save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size.RData")
 ```
 
 # calculate entropy
@@ -434,7 +443,7 @@ for(i in 1:length(IDs)){
               min_IRG = IRG[which.min(IRG)],
               max_EVI = pred[which.max(pred)],
               min_EVI = pred[which.min(pred)],
-              area_EVI = trapz(as.numeric(time),pred),
+              # area_EVI = trapz(as.numeric(time),pred),
               entropy = mean(entropy, na.rm = TRUE),
               seasonality = mean(seasonality, na.rm = TRUE))
   t$year <- year(t$time)
@@ -627,10 +636,8 @@ peak_circ <- Peaks %>% group_by(Country, Location) %>%
                                                       type = "angles", units = "radians", modulo = "2pi"))[1],
     HR_p = HR_test(data = circular(month(round_date(date, unit = "months"))*2*pi/12, 
                                                       type = "angles", units = "radians", modulo = "2pi"))[2])
-peak_circ %>% write.csv
+# peak_circ %>% write.csv
 ```
-
-
 
 # plot colony and RS peaks 
 ```{r}
@@ -808,7 +815,8 @@ plot(rs_max_sum$IRG_intensity, avg_peaks$intensity, cex = avg_peaks$n)
 ggplot(data = Africa)+ geom_sf() +
   geom_point(data = avg_peaks, aes(x = Long, y = Lat, col = month, 
                                size = log10(count))) +
-  coord_sf(xlim = c(-20, 45), ylim = c(-20, 20), expand = FALSE) + 
+  # coord_sf(xlim = c(-20, 45), ylim = c(-20, 20), expand = FALSE) + 
+  xlim(c(-20, 45))+ ylim(c(-20, 20))+
   theme_classic() +
   scale_color_viridis_c(name = "Month")+
   xlab("Longitude")+ylab("Latitude") + guides(size = guide_legend(title = "Log(Peak Size)"))
@@ -819,7 +827,8 @@ ggplot(data = Africa)+ geom_sf() +
 ggplot(data = Africa)+ geom_sf() +
   geom_point(data = avg_peaks, aes(x = Long, y = Lat,
                                size = log10(count))) +
-  coord_sf(xlim = c(-20, 45), ylim = c(-20, 20), expand = FALSE) + 
+  # coord_sf(xlim = c(-20, 45), ylim = c(-20, 20), expand = FALSE) + 
+  xlim(c(-20, 45))+ ylim(c(-20, 20))+
   theme_classic() +
   facet_wrap(~month)+
   xlab("Longitude")+ylab("Latitude") + guides(size = guide_legend(title = "Log(Peak Size)"))
@@ -1096,7 +1105,6 @@ Ngamba Is 2014 - 56
 
 
 ```{r}
-library(circular)
 
 # cor.circular(deg2rad(Peaks$sos), deg2rad(yday(Peaks$IRG_spline)))
 # plot(Peaks$sos, yday(Peaks$IRG_spline))
@@ -1151,7 +1159,7 @@ ggplot(p_mlt, aes(x = variable, y = value, fill = variable))+
 ```{r}
 p1 <- ggplot(Peaks, aes(y = month(month), x = month(EVI_spline), col = Lat))+
   geom_point()+xlim(c(0,365))+ylim(c(0,365))+
-  geom_smooth()+
+  geom_smooth(method = "lm")+
   geom_abline(slope = 1, intercept = 0)+ylab("Peak Colony Day")+xlab("Peak EVI Day")+
   scale_color_viridis_c(name='Latitude', option='E', alpha=0.7)+
   theme_classic()+ggtitle("Spline")+
@@ -1259,8 +1267,8 @@ p1 <-
   ylab("Peak Colony Month")+xlab("Peak EVI Month")+
   # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
   theme_classic() +
-  scale_y_continuous(breaks=c(3,6,9,12))+
-  scale_x_continuous(breaks=c(3,6,9,12))+
+  scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
+  scale_x_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
   geom_text(y = 10, x = 2, 
             label = paste0("cor: ", 
                                 round(cor.circular(
@@ -1273,15 +1281,15 @@ p1 <-
 p2 <- ggplot(Peaks, aes(y = month(month), 
                                  x = month(IRG_spline)))+
                                  #col = abs(Lat)))+
-  geom_point(col = cbPalette[2])+xlim(c(0,12))+ylim(c(0,12))+
+  geom_point(col = cbPalette[2])+
   #geom_smooth(method = "lm", formula = my.formula)+
   geom_abline(slope = 1, intercept = 0)+
   ylab("Peak Colony Month")+xlab("Peak IRG Month")+
   # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
   theme_classic()+
-  scale_y_continuous(breaks=c(3,6,9,12))+
-  scale_x_continuous(breaks=c(3,6,9,12))+
-  geom_text(y = 10, x = 4, 
+  scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
+  scale_x_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
+  geom_text(y = 10, x = 2, 
             label = paste0("cor: ", 
                            round(cor.circular(
                              y = pi*month(Peaks$month)/12, 
@@ -1289,7 +1297,7 @@ p2 <- ggplot(Peaks, aes(y = month(month),
   # stat_poly_eq(formula = my.formula, 
   #               aes(label = paste(..rr.label.., sep = "~~~")), 
   #               parse = TRUE)
-
+p2
 p3 <- 
   ggplot(Peaks, aes(y = month(month), 
                              x = month(precip_spline)))+
@@ -1300,8 +1308,8 @@ p3 <-
     ylab("Peak Colony Month")+xlab("Peak Precipitation Month")+
   # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
     theme_classic()+
-    scale_y_continuous(breaks=c(3,6,9,12))+
-    scale_x_continuous(breaks=c(3,6,9,12))+
+    scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
+    scale_x_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
   geom_text(y = 10, x = 2, 
             label = paste0("cor: ", 
                            round(cor.circular(
@@ -1365,8 +1373,9 @@ p4a <- ggviolin(CC_mlt, x = "variable", y = "value", fill = "variable",
   stat_compare_means(label.y = 50)
 
 p <- ggarrange(p1,p2,p3,p4a, ncol = 2, nrow = 2, common.legend = FALSE,
-          labels = c("A", "B", "C", "D"))  
-ggsave(p, filename = "fig2.png")
+          labels = c("A", "B", "C", "D"), label.y = 1)  
+p
+ggsave(p, filename = "../../../../Dropbox/MPI/Eidolon/GreenWave/plots/fig3.png")
 ```
 
 ## strict peaks
@@ -1383,8 +1392,8 @@ p1 <-
   ylab("Peak Colony Month")+xlab("Peak EVI Month")+
   # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
   theme_classic() +
-  scale_y_continuous(breaks=c(3,6,9,12))+
-  scale_x_continuous(breaks=c(3,6,9,12))+
+  scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
+  scale_x_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
   geom_text(y = 10, x = 2, 
             label = paste0("cor: ", 
                                 round(cor.circular(
@@ -1404,8 +1413,8 @@ p2 <- ggplot(Peaks[which(Peaks$Date %in% Strict_Peaks$Date & Peaks$ratio %in% St
   ylab("Peak Colony Month")+xlab("Peak IRG Month")+
   # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
   theme_classic()+
-  scale_y_continuous(breaks=c(3,6,9,12))+
-  scale_x_continuous(breaks=c(3,6,9,12))+
+  scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
+  scale_x_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
   geom_text(y = 10, x = 4, 
             label = paste0("cor: ", 
                            round(cor.circular(
@@ -1426,8 +1435,8 @@ p3 <-
     ylab("Peak Colony Month")+xlab("Peak Precipitation Month")+
   # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
     theme_classic()+
-    scale_y_continuous(breaks=c(3,6,9,12))+
-    scale_x_continuous(breaks=c(3,6,9,12))+
+    scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
+    scale_x_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
   geom_text(y = 10, x = 2, 
             label = paste0("cor: ", 
                            round(cor.circular(
@@ -1556,9 +1565,40 @@ psych::pairs.panels(Peaks[,c("abs_months_to_IRG_spline", "log_colony_size",
                              "abs_Lat",
                              "ratio", "entropy", "max_EVI", "min_EVI", "max_IRG", "min_IRG", 
                              "IRG_amp",
-                             "auc_EVI", "amp_EVI", "amp", "LOS", "avg_LOS")])
+                             "amp_EVI", "amp", "LOS", "avg_LOS")])
 
+summary(Peaks)
 ### add to supplement - corrplot
+```
+
+
+```{r}
+p1 <- 
+  ggplot(Peaks, aes(x = entropy, y = abs_months_to_IRG_spline))+
+  geom_point(alpha = 0.2)+geom_smooth(method = "lm", col = "black")+
+  theme_classic()+
+  ylab("Months to Peak IRG")+xlab("Entropy")
+p2 <- 
+  ggplot(Peaks, #[-42,],
+       aes(x = max_EVI, y = abs_months_to_IRG_spline))+
+  geom_point(alpha = 0.2)+geom_smooth(method = "lm", col = "black")+
+  theme_classic()+
+  ylab("Months to Peak IRG")+xlab("max(EVI)")
+p3 <- ggplot(Peaks, aes(x = log_colony_size, y = abs_months_to_IRG_spline))+
+  geom_point(alpha = 0.2)+geom_smooth(method = "lm", col = "black")+
+  theme_classic()+
+  ylab("Months to Peak IRG")+xlab("log(colony size)")
+
+ggarrange(p1,p2,p3, nrow = 1)
+Peaks[which.max(Peaks$abs_months_to_IRG_spline),]
+
+Peaks$value <- "IRG"
+p <- ggplot(Peaks,aes(y = abs_months_to_IRG_spline, x = value))+geom_violin(fill = cbPalette[2])+
+  geom_jitter(alpha = 0.2, height = 0, width = 0.5)+
+  #geom_hline(yintercept = 0)+
+  theme_classic()+
+  theme(text = element_text(size = 20))+
+  xlab("")+ylab("abs(Months to Peak IRG)")
 ```
 
 ###### check for spatial autocorrelation

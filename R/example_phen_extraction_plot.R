@@ -143,3 +143,4 @@ gg_entropy <-
 gg_examples <- ggarrange(gg_peaks, gg_entropy, align = "h")
 
 save(gg_peaks, gg_entropy, gg_examples, example_EVI, example_peaks, file = "../../../../Dropbox/MPI/Eidolon/GreenWave/rdata/gg_examples.Rdata")
+load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/gg_examples.Rdata")
