@@ -145,10 +145,10 @@ ggplot(tmp2, aes(x,y))+geom_tile(aes(fill = cmy_spec(evi, entropy, seasonality))
 
 
 save(S,E,P, s,e,p, medium, file = "../../../../Dropbox/MPI/Eidolon/GreenWave/rdata/seasonality_raster.Rdata")
-load("../../../../Dropbox/MPI/Eidolon/GreenWave/rdata/seasonality_raster.Rdata")
+load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/seasonality_raster.Rdata")
 # add colonies
-load("../../../../Dropbox/MPI/Eidolon/GreenWave/rdata/avg_peaks.RData")
-load("../../../../Dropbox/MPI/Eidolon/GreenWave/rdata/colony_count.RData")
+load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/avg_peaks.RData")
+load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/colony_count.RData")
 
 
 plot(S)
@@ -160,9 +160,9 @@ plot(S)
 text(Lat~ Long, labels = c("A", "B", "C", "D"), cex = 1.5,
      data = avg_peaks[avg_peaks$geeID %in% geeidx,])
 
-EVI <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/rm_MOD13Q1_EVI_2000_2020_ptsB_buf67_pix250.csv")
+EVI <- read.csv("./../../../Dropbox/GreenWave/EidolonColonies/rawdata/rm_MOD13Q1_EVI_2000_2020_ptsB_buf67_pix250.csv")
 EVI$time <- as.Date(ymd_hms(EVI$startDate))
-precip <- read.csv("../../../../Dropbox/MPI/Eidolon/Greenwave/data/GEE/ee_precip_chirps_colonies_2000_2020.csv")
+precip <- read.csv("./../../../Dropbox/MPI/Eidolon/Greenwave/data/GEE/ee_precip_chirps_colonies_2000_2020.csv")
 names(precip) <- c("time", 1:17)
 precip$time <- dmy(precip$time)
 
@@ -203,7 +203,8 @@ for(i in 1:length(geeidx)){
                                      as.Date("2021-01-01"), by = "year"),
                linetype = "dashed", col = "gray")+
     geom_hline(yintercept = 0, col = "gray")+
-    ggtitle(paste0(LETTERS[i],". ", avg_peaks$Location[geeidx[i]]))+
+    ggtitle(#paste0(LETTERS[i],". ", 
+                   avg_peaks$Location[geeidx[i]])+
     geom_area(data = c, aes(month, y = count/max(count, na.rm = TRUE)), # *max(evi$evi)), 
               col = 1, alpha = 0.1, inherit.aes = FALSE)+
     theme(legend.position = "none", 
