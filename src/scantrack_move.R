@@ -1,5 +1,6 @@
+
 scantrack <- function(b2){
-  layout.matrix <- matrix(c(2, 1, 0, 3), nrow = 2, ncol = 2)
+  layout.matrix <- matrix(c(2, 1, 4, 3), nrow = 2, ncol = 2)
   
   layout(mat = layout.matrix,
          heights = c(1, 2), # Heights of the two rows
@@ -9,13 +10,20 @@ scantrack <- function(b2){
   if(class(b2) == "move"){
     plot(b2, type = "o", xlab = "Longitude", ylab = "Latitude")  
   }
+  if(class(b2) == "MoveStack"){
+    plot(b2, type = "o", xlab = "Longitude", ylab = "Latitude", 
+         col = as.factor(b2$tag_id))  
+  }
   if(class(b2) == "data.frame"){
     plot(b2$utm.easting, b2$utm.northing, type = "o", xlab = "Longitude", ylab = "Latitude")
   }
   
-  
-  plot(b2$timestamp, b2$utm.easting, type = "o")    
-  plot(b2$timestamp, b2$utm.northing, type = "o")
+  plot(b2$timestamp, b2$location_lat, type = "o", 
+       xlab = "time", ylab = "latitude")    
+  plot(b2$timestamp, b2$location_long, type = "o", 
+       xlab = "time", ylab = "longitude")
+  plot(b2$timestamp, b2$distance/1000, type = "o", 
+       xlab = "time", ylab = "distance (km)")
 
 }
 
