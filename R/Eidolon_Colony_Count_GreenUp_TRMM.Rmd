@@ -51,10 +51,10 @@ write.csv(count_sum)
 
 Acknowledgements
 ```{r}
-ack <- unique(paste0(colonies$Country, ": ", colonies$Observer))
-ack[order(ack)]
-
-write.csv(ack, file = )
+# ack <- unique(paste0(colonies$Country, ": ", colonies$Observer))
+# ack[order(ack)]
+# 
+# write.csv(ack, file = )
 ```
 
 # load GEE data
@@ -77,9 +77,9 @@ MEVIarea2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MOD
 
 # water
 ```{r load GEE data}
-precip <- read.csv("../../../../Dropbox/MPI/Eidolon/Greenwave/data/GEE/ee_precip_chirps_colonies_2000_2020.csv")
-names(precip) <- c("time", 1:17)
-precip$time <- dmy(precip$time)
+precip <- read.csv("../../../../Dropbox/MPI/Eidolon/Greenwave/data/GEE/rm_TRMM_pr_2000_2020_ptsB.csv")
+# names(precip) <- c("time", 1:17)
+precip$time <- ymd_hms(precip$startDate)
 
 # aet <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/EvapoTranspiration/tcy_aet_2000_2020_ptsB.csv")
 # def <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/EvapoTranspiration/tcy_def_2000_2020_ptsB.csv")
@@ -162,7 +162,7 @@ EVI$time <- ymd_hms(EVI$startDate)
 ```
 # add IRG to EVI
 ```{r}
-IDs
+IDs <- 1:17
 EVI$IRG <- NA
 EVI$Lat <- NA
 for(i in 1:length(IDs)){
@@ -257,8 +257,8 @@ fig1 <-
   guides(size = guide_legend(nrow = 2, title = "Avg Peak Size"))+
   viridis::scale_color_viridis(name = "Month", option = "D")
 fig1
-ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map.png")
-save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size.RData")
+ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
+save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
 ```
 
 # calculate entropy
@@ -321,9 +321,11 @@ for(i in 1:length(IDs)){
   ID <- i
   
   e <- subset(EVI, EVI$geeID == ID)
-  p <- precip[,c(1,ID+1)]
+  p <- subset(precip, precip$geeID == ID)
+    # precip[,c(1,ID+1)]
   # t <- evap[evap$geeID == ID,]
-  names(p) <- c("time", "precip")
+  # names(p) <- c("time", "precip")
+  p$precip <- p$mean
   p$time <- ymd_hms(paste0(p$time, " 12:00:00"))
   
   e$time <- ymd_hms(e$startDate)
@@ -486,8 +488,8 @@ for(i in 1:length(IDs)){
   rs <- rbind(rs, C)
 }
 summary(rs)
-save(colonies, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/regular_colonies.Rdata")
-load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/regular_colonies.Rdata")
+save(colonies, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/regular_colonies_TRMM.Rdata")
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/regular_colonies_TRMM.Rdata")
 # (rs$daylength) %>% plot
 ```  
 
@@ -719,7 +721,7 @@ rs_max_sum <- rs_max %>% group_by(geeID) %>%
                                                       type = "angles", units = "radians", modulo = "2pi"))[2],
             entropy = entropy[which.max(entropy)])
 rs_max_sum
-write.csv(rs_max_sum)
+# write.csv(rs_max_sum)
 
 HR_test(data = circular(month(round_date(rs_max$EVI_spline, unit = "months"))*2*pi/12, 
                                                       type = "angles", units = "radians", modulo = "2pi"))
@@ -1040,8 +1042,8 @@ Peaks$months_to_precip_pspline <- round(difftime(Peaks$month,
 wilcox.test(Peaks$months_to_precip_spline, Peaks$months_to_IRG_spline)
 summary(Peaks)
 
-save(avg_peaks, Peaks, Strict_Peaks, reg_colonies, Africa, EVI, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
-load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
+save(avg_peaks, Peaks, Strict_Peaks, reg_colonies, Africa, EVI, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks_TRMM.RData")
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks_TRMM.RData")
 ```
 
 # plot each peak and env data around it
@@ -1580,8 +1582,8 @@ rs
 
 ```
 ```{r}
-save(Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
-load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks.RData")
+save(Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks_TRMM.RData")
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks_TRMM.RData")
 ```
 
 ```{r}
