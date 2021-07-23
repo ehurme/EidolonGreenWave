@@ -385,7 +385,7 @@ for(i in 1:length(IDs)){
   p$pred <- predp$y
   lines(pred, col=2)
   # lines(predt, col = 4)
-  lines(as.Date(p$time), p$pred/max(p$pred), col = "darkblue")
+  lines(as.Date(p$time), p$pred/max(p$pred), col = "blue")
   
   ## get derivative of EVI -> IRG
   # pred.prime <- predict(spl, deriv=1)
@@ -667,14 +667,14 @@ for(i in 1:length(IDs)){
   # abline(v = 2000:2020, lty = 2)
   points(r$year, month(r$EVI_spline), type ="o", pch = 16, col = 3)
   points(r$year, month(r$precip_spline), type = "o", pch = 16, col = 4)
-  points(r$year, month(r$precip_pspline), type = "o", pch = 16, col = "darkblue")
+  points(r$year, month(r$precip_pspline), type = "o", pch = 16, col = "blue")
   # points(r$year, month(r$aet_spline), type = "o", pch = 16, col = 5)
   # points(r$year, month(r$daylength_month), type = "o", pch = 16, col = "gold")
   points(x = year(p$month), y = month(p$month), col = 1, pch = 16, cex = 2)
   
   
   legend("bottomleft", legend = c("EVI", "IRG", "Precip", "PrpStart", 
-                                  "Colony"), pch = 16, col = c(3,2,4,"darkblue",
+                                  "Colony"), pch = 16, col = c(3,2,4,"blue",
                                                                1))
   # plot(r$year, month(r$IRG_model), type = "o", pch = 16,
   #      ylab = "month", xlab = "", col = 3,
@@ -754,7 +754,7 @@ plot(rs_max_sum$geeID, rs_max_sum$EVI_intensity, type = "o", col = 3,
      ylab = "angular concentration")
 points(rs_max_sum$geeID, rs_max_sum$IRG_intensity, type = "o", col = 2)
 points(rs_max_sum$geeID, rs_max_sum$precip_intensity, type = "o", col = 4)
-points(rs_max_sum$geeID, rs_max_sum$precipp_intensity, type = "o", col = "darkblue")
+points(rs_max_sum$geeID, rs_max_sum$precipp_intensity, type = "o", col = "blue")
 ```
 ```{r}
 rs_max_sum <- rs_max_sum[order(rs_max_sum$entropy),]
@@ -762,7 +762,7 @@ plot(rs_max_sum$entropy, rs_max_sum$EVI_intensity, type = "o", col = 3,
      ylab = "angular concentration")
 points(rs_max_sum$entropy, rs_max_sum$IRG_intensity, type = "o", col = 2)
 points(rs_max_sum$entropy, rs_max_sum$precip_intensity, type = "o", col = 4)
-points(rs_max_sum$entropy, rs_max_sum$precipp_intensity, type = "o", col = "darkblue")
+points(rs_max_sum$entropy, rs_max_sum$precipp_intensity, type = "o", col = "blue")
 ```
 
 # Add start and end of season estimates to each peak
@@ -1040,11 +1040,31 @@ Peaks$months_to_precip_pspline <- round(difftime(Peaks$month,
 # wilcox.test(Peaks$months_to_EVI_spline, Peaks$months_to_IRG_spline)
 # wilcox.test(Peaks$months_to_EOS_spline, Peaks$months_to_IRG_spline)
 wilcox.test(Peaks$months_to_precip_spline, Peaks$months_to_IRG_spline)
+wilcox.test(Peaks$months_to_precip_pspline, Peaks$months_to_IRG_spline)
 summary(Peaks)
+
+sum(abs(Peaks$months_to_EVI_spline))
+sum(abs(Peaks$months_to_IRG_spline))
+sum(abs(Peaks$months_to_precip_spline))
+sum(abs(Peaks$months_to_precip_pspline))
 
 save(avg_peaks, Peaks, Strict_Peaks, reg_colonies, Africa, EVI, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks_TRMM.RData")
 load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks_TRMM.RData")
 ```
+
+# rain onset
+```{r}
+i = 1
+for(i in 1:length(IDs)){
+  p <- subset(precip, precip$geeID == IDs[i])
+  p$mm <- p$mean *24*30 # mm/hr to mm/month 
+  plot(p$time, p$mm, type = "o", col = (p$mm > 25)+1)
+}
+
+
+```
+
+
 
 # plot each peak and env data around it
 ```{r}
@@ -1087,12 +1107,12 @@ for(i in 1:nrow(Peaks)){
   # lines(pred, col = "darkgreen")
   lines(predp, col = 4)
   lines(pred.prime$x, pred.prime$y01, col = "darkred")
-  lines(predp.prime$x, predp.prime$y01, col = "darkblue")
+  lines(predp.prime$x, predp.prime$y01, col = "blue")
   # abline(v = p$LOS_start, col = 2, lty = 2, lwd = 2)
   abline(v = p$IRG_spline, col = 2)
   abline(v = p$EVI_spline, col = 3)
   abline(v = p$precip_spline, col = 4)
-  abline(v = p$precip_pspline, col = "darkblue")
+  abline(v = p$precip_pspline, col = "blue")
   # abline(v = p$LOS_end, col = "purple", lty = 2, lwd = 2)
   # abline(v = p$EOS_spline, col = "purple")
   # abline(v = p$aet_spline, col = "orange")
@@ -1329,10 +1349,10 @@ p4 <-
   ggplot(Peaks, aes(y = month(month), 
                              x = month(precip_pspline)))+
                              # col = abs(Lat)))+
-  geom_point(col = "darkblue")+xlim(c(0,12))+ylim(c(0,12))+
+  geom_point(col = "turquoise")+xlim(c(0,12))+ylim(c(0,12))+
   # geom_smooth(method = "lm", formula = my.formula)+
   geom_abline(slope = 1, intercept = 0)+
-    ylab("Peak Colony Month")+xlab("Peak Start Precip Month")+
+    ylab("Peak Colony Month")+xlab("Peak Onset Precip Month")+
   # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
     theme_classic()+
     scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
@@ -1347,28 +1367,29 @@ ggarrange(p1,p2,p3,p4, ncol = 2, nrow = 2, common.legend = TRUE)
 
 ```
 
-# plot difference
+# Fig 3
+## plot difference
 ```{r}
-CC_mlt <- reshape2::melt(Peaks[,c("year", "Lat", "months_to_EVI_spline", "months_to_IRG_spline", "months_to_precip_spline")], id = c("year", "Lat"))
+CC_mlt <- reshape2::melt(Peaks[,c("year", "Lat", "months_to_EVI_spline", "months_to_IRG_spline", "months_to_precip_spline", "months_to_precip_pspline")], id = c("year", "Lat"))
 
-CC_mlt$variable <- plyr::revalue(CC_mlt$variable, c("months_to_EVI_spline"="Peak EVI", "months_to_IRG_spline"="Peak IRG", "months_to_precip_spline"="Peak Precip"))
+CC_mlt$variable <- plyr::revalue(CC_mlt$variable, c("months_to_EVI_spline"="Peak EVI", "months_to_IRG_spline"="Peak IRG", "months_to_precip_spline"="Peak Precip", "months_to_precip_pspline"="Peak Onset Precip"))
 
 # Compute the analysis of variance
 res.aov <- aov(value ~ variable, data = CC_mlt)
 # Summary of the analysis
 summary(res.aov)
 
-p4 <- ggplot(CC_mlt, aes(x = variable, 
-                                    y = value, fill = variable)) + geom_hline(yintercept = 0) + 
+p5 <- ggplot(CC_mlt, aes(x = variable, y = value, fill = variable)) + 
+  geom_hline(yintercept = 0) + 
   geom_violin(draw_quantiles = c(0.5)) + theme_classic() + 
   geom_jitter(width = 0.2, alpha = 0.2)+
   theme(legend.position = "none") + 
-  scale_fill_manual(values=cbPalette)+
+  scale_fill_manual(values=c(cbPalette, "turquoise"))+
   # scale_fill_viridis_d() +
   ylab("Months to Peak Colony Size") + xlab("")+ylim(c(-10,7))
 
 
-ggarrange(p1,p2,p3,p4, ncol = 2, nrow = 2, common.legend = FALSE)  
+ggarrange(p1,p2,p3,p4,p5, ncol = 2, nrow = 3, common.legend = FALSE, widths = c(1,1,1,1,2))  
 
 gg_color_hue <- function(n) {
   hues = seq(15, 375, length = n + 1)
@@ -1386,24 +1407,37 @@ ggplot(CC_mlt, aes(x = variable,
   ylab("Months to Peak Colony Size") + xlab("")+ylim(c(-10,7))
 # add statistical tests
 
-my_comparisons <- list( c("Peak EVI", "Peak IRG"), c("Peak EVI", "Peak Precip"), c("Peak IRG", "Peak Precip") )
-p4a <- ggviolin(CC_mlt, x = "variable", y = "value", fill = "variable",
-         palette = cbPalette, 
-         ylim = c(-10,20),
+my_comparisons <- list( c("Peak EVI", "Peak IRG"), 
+                        c("Peak EVI", "Peak Precip"), 
+                        c("Peak IRG", "Peak Precip"),
+                        c("Peak IRG", "Peak Onset Precip"), 
+                        c("Peak Precip", "Peak Onset Precip"), 
+                        c("Peak EVI", "Peak Onset Precip"))
+p5a <- ggviolin(CC_mlt, x = "variable", y = "value", fill = "variable",
+         palette = c(cbPalette, "turquoise"), 
+         ylim = c(-10,30),
          add = "boxplot", add.params = list(fill = "white"))+
-  theme(legend.position = "none")+ #, text = element_text(size = 20))+
+  theme(legend.position = "none", 
+        axis.text.x = element_text(angle = 30, vjust = 1, hjust=1))+ #, text = element_text(size = 20))+
   ylab("Months to Peak Colony Size")+ xlab("")+
   stat_compare_means(comparisons = my_comparisons, label = "p.signif")+ # Add significance levels
   stat_compare_means(label.y = 50)
-
-p <- ggarrange(p1,p2,p3,p4a, ncol = 2, nrow = 2, common.legend = FALSE,
+p5a+theme_get()+theme(legend.position = "none")
+p <- ggarrange(p1,p2,p3,p4, ncol = 2, nrow = 2, common.legend = FALSE,
           labels = c("A", "B", "C", "D"), label.y = 1)  
 p
-ggsave(p, filename = "../../../../Dropbox/MPI/Eidolon/GreenWave/plots/fig3.png")
+f3 <- ggarrange(p+theme(text = element_text(size = 15)), 
+                p5a+theme_get()+
+                  theme(legend.position = "none",
+                        axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
+                        text = element_text(size = 15)), 
+                ncol = 2, heights = c(1,1), labels = c("", "E"), align = "v")
+
+ggsave(f3, 
+       filename = "../../../../Dropbox/MPI/Eidolon/GreenWave/plots/fig3_TRMM.png", width = 11, height = 5)
 ```
 
-<<<<<<< HEAD
-## strict peaks
+
 
 ```{r}
 p1 <- 
@@ -2286,7 +2320,7 @@ ggplot(Africa)+geom_sf()+
   geom_jitter(data = Peaks, 
               aes(Long, Lat, colour = abs(mp_glm_residuals)), 
               size = 3, width = 1, height = 1) +
-  scale_color_gradient2(midpoint = 2, high = "darkred", low = "darkblue")+
+  scale_color_gradient2(midpoint = 2, high = "darkred", low = "blue")+
   theme_classic()
 ```
 
@@ -2454,7 +2488,7 @@ ggplot(Africa)+geom_sf()+
   geom_jitter(data = Peaks, 
               aes(Long, Lat, colour = abs(mp_glm_residuals)), 
               size = 3, width = 1, height = 1) +
-  scale_color_gradient2(midpoint = 2, high = "darkred", low = "darkblue")+
+  scale_color_gradient2(midpoint = 2, high = "darkred", low = "blue")+
   theme_classic()
 ```
 
