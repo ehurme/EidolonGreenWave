@@ -33,12 +33,9 @@ source("../src/IRG_functions.R")
 load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/colony_count.RData")
 ```
 
-<<<<<<< HEAD
 ## summarize
 ```{r}
 colonies$Count[colonies$Location == "Kasanka"] %>% summary
-
-
 
 count_sum <- colonies %>% group_by(Country, Location) %>% 
   summarise(start = min(date), end = max(date), 
@@ -1331,7 +1328,7 @@ p3 <-
   geom_point(col = cbPalette[3])+xlim(c(0,12))+ylim(c(0,12))+
   # geom_smooth(method = "lm", formula = my.formula)+
   geom_abline(slope = 1, intercept = 0)+
-    ylab("Peak Colony Month")+xlab("Peak Precipitation Month")+
+    ylab("Peak Colony Month")+xlab("Peak PRP Month")+
   # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
     theme_classic()+
     scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
@@ -1352,7 +1349,7 @@ p4 <-
   geom_point(col = "turquoise")+xlim(c(0,12))+ylim(c(0,12))+
   # geom_smooth(method = "lm", formula = my.formula)+
   geom_abline(slope = 1, intercept = 0)+
-    ylab("Peak Colony Month")+xlab("Peak Onset Precip Month")+
+    ylab("Peak Colony Month")+xlab("Peak IRP Month")+
   # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
     theme_classic()+
     scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
@@ -1372,7 +1369,7 @@ ggarrange(p1,p2,p3,p4, ncol = 2, nrow = 2, common.legend = TRUE)
 ```{r}
 CC_mlt <- reshape2::melt(Peaks[,c("year", "Lat", "months_to_EVI_spline", "months_to_IRG_spline", "months_to_precip_spline", "months_to_precip_pspline")], id = c("year", "Lat"))
 
-CC_mlt$variable <- plyr::revalue(CC_mlt$variable, c("months_to_EVI_spline"="Peak EVI", "months_to_IRG_spline"="Peak IRG", "months_to_precip_spline"="Peak Precip", "months_to_precip_pspline"="Peak Onset Precip"))
+CC_mlt$variable <- plyr::revalue(CC_mlt$variable, c("months_to_EVI_spline"="Peak EVI", "months_to_IRG_spline"="Peak IRG", "months_to_precip_spline"="Peak PRP", "months_to_precip_pspline"="Peak IRP"))
 
 # Compute the analysis of variance
 res.aov <- aov(value ~ variable, data = CC_mlt)
@@ -1402,17 +1399,17 @@ ggplot(CC_mlt, aes(x = variable,
   geom_violin(draw_quantiles = c(0.5)) + theme_classic() + 
   geom_jitter(width = 0.2, alpha = 0.2)+
   theme(legend.position = "none") + 
-  scale_fill_manual(values=cbPalette)+
+  scale_fill_manual(values=c(cbPalette,"turquoise"))+
   # scale_fill_viridis_d() +
   ylab("Months to Peak Colony Size") + xlab("")+ylim(c(-10,7))
 # add statistical tests
 
 my_comparisons <- list( c("Peak EVI", "Peak IRG"), 
-                        c("Peak EVI", "Peak Precip"), 
-                        c("Peak IRG", "Peak Precip"),
-                        c("Peak IRG", "Peak Onset Precip"), 
-                        c("Peak Precip", "Peak Onset Precip"), 
-                        c("Peak EVI", "Peak Onset Precip"))
+                        c("Peak EVI", "Peak PRP"), 
+                        c("Peak IRG", "Peak PRP"),
+                        c("Peak IRG", "Peak IRP"), 
+                        c("Peak Precip", "Peak IRP"), 
+                        c("Peak EVI", "Peak IRP"))
 p5a <- ggviolin(CC_mlt, x = "variable", y = "value", fill = "variable",
          palette = c(cbPalette, "turquoise"), 
          ylim = c(-10,30),
@@ -1507,11 +1504,8 @@ p3 <-
 
 ggarrange(p1,p2,p3, ncol = 2, nrow = 2, common.legend = TRUE)
 ```
-=======
+
 # model months to peak IRG
->>>>>>> f4273b6e6c1f7ce10ea8e48c24d9b72648569769
-
-
 
 ## prep data
 ```{r}
@@ -1525,7 +1519,7 @@ table(Peaks$abs_months_to_IRG_spline)
 ## add lat long to rs
 ```{r}
 rs$seasonality <- NA
-IDs
+IDs <- 1:17
 for(i in 1:length(IDs)){
   rs$Lat[rs$geeID == IDs[i]] <- Peaks$Lat[Peaks$geeID == IDs[i]]
   rs$Long[rs$geeID == IDs[i]] <- Peaks$Long[Peaks$geeID == IDs[i]]
@@ -1569,25 +1563,25 @@ library(geosphere)
 #     
 #   )
 
-rs$LOS <- rs$EOS_spline - rs$IRG_spline
-idx <- which(rs$LOS < 0)
-
-rs[idx,]
-rs[(idx[1]-1):(idx[1]+1),]
-for(i in 1:length(idx)){
-  rs$LOS[idx[i]] <- rs$EOS_spline[idx[i]+1] - rs$IRG_spline[idx[i]]
-}
-
-rs$avg_LOS <- NA
-IDs <- unique(rs$geeID)
-i = 1
-for(i in 1:length(IDs)){
-  idx <- which(rs$geeID == IDs[i])
-  SOS <- circ.mean.yday(yday(rs$IRG_spline[idx]))
-  EOS <- circ.mean.yday(yday(rs$EOS_spline[idx]))
-  if((EOS - SOS)>0) rs$avg_LOS[idx] <- EOS - SOS  
-  if((EOS - SOS)<0) rs$avg_LOS[idx] <- SOS - EOS
-}
+# rs$LOS <- rs$EOS_spline - rs$IRG_spline
+# idx <- which(rs$LOS < 0)
+# 
+# rs[idx,]
+# rs[(idx[1]-1):(idx[1]+1),]
+# for(i in 1:length(idx)){
+#   rs$LOS[idx[i]] <- rs$EOS_spline[idx[i]+1] - rs$IRG_spline[idx[i]]
+# }
+# 
+# rs$avg_LOS <- NA
+# IDs <- unique(rs$geeID)
+# i = 1
+# for(i in 1:length(IDs)){
+#   idx <- which(rs$geeID == IDs[i])
+#   SOS <- circ.mean.yday(yday(rs$IRG_spline[idx]))
+#   EOS <- circ.mean.yday(yday(rs$EOS_spline[idx]))
+#   if((EOS - SOS)>0) rs$avg_LOS[idx] <- EOS - SOS  
+#   if((EOS - SOS)<0) rs$avg_LOS[idx] <- SOS - EOS
+# }
 
 for(i in 1:nrow(Peaks)){
   idx <- which(Peaks$geeID[i] == rs$geeID & Peaks$year[i] == rs$year)
@@ -1599,10 +1593,10 @@ for(i in 1:nrow(Peaks)){
   Peaks$max_IRG[i] <- max(rs$max_IRG[idx], na.rm = TRUE)
   Peaks$min_IRG[i] <- max(rs$min_IRG[idx], na.rm = TRUE)
   
-  Peaks$LOS[i] <-     max(rs$LOS[idx], na.rm = TRUE)
-  Peaks$avg_LOS[i] <- max(rs$avg_LOS[idx], na.rm = TRUE)
-  Peaks$auc_EVI[i] <- max(rs$area_EVI[idx], na.rm = TRUE)
-  Peaks$daylength[i]<-max(daylength(Peaks$Lat[i], 1:365))
+  # Peaks$LOS[i] <-     max(rs$LOS[idx], na.rm = TRUE)
+  # Peaks$avg_LOS[i] <- max(rs$avg_LOS[idx], na.rm = TRUE)
+  # Peaks$auc_EVI[i] <- max(rs$area_EVI[idx], na.rm = TRUE)
+  # Peaks$daylength[i]<-max(daylength(Peaks$Lat[i], 1:365))
 }
 Peaks$amp_EVI <- Peaks$max_EVI - Peaks$min_EVI
 
@@ -1615,6 +1609,7 @@ rs
 
 
 ```
+
 ```{r}
 save(Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks_TRMM.RData")
 load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks_TRMM.RData")
@@ -1626,7 +1621,7 @@ psych::pairs.panels(Peaks[,c("abs_months_to_IRG_spline", "log_colony_size",
                              "abs_Lat",
                              "ratio", "entropy", "max_EVI", "min_EVI", "max_IRG", "min_IRG", 
                              "IRG_amp",
-                             "amp_EVI", "amp", "LOS", "avg_LOS")])
+                             "amp_EVI", "amp")])
 
 summary(Peaks)
 ### add to supplement - corrplot
@@ -1650,7 +1645,7 @@ p3 <- ggplot(Peaks, aes(x = log_colony_size, y = abs_months_to_IRG_spline))+
   theme_classic()+
   ylab("Months to Peak IRG")+xlab("log(colony size)")
 
-ggarrange(p1,p2,p3, nrow = 1)
+ggarrange(p1,p2,p3, nrow = 1, labels = LETTERS[1:3])
 Peaks[which.max(Peaks$abs_months_to_IRG_spline),]
 
 Peaks$value <- "IRG"
@@ -1667,6 +1662,7 @@ p <- ggplot(Peaks,aes(y = abs_months_to_IRG_spline, x = value))+geom_violin(fill
 # moran's I
 library(tidyverse)
 library(gridExtra)
+library(performance)
 # library(NLMR)
 library(DHARMa)
 
@@ -1706,14 +1702,14 @@ no_accra <- Peaks[which(Peaks$geeID != 10),]
 Peaks$months_to_IRG_spline %>% #abs %>% 
   hist(breaks = 6, main = "", xlab = "Months to Peak IRG")
 table(Peaks$abs_months_to_IRG_spline)
-m0 <- glmer(abs(months_to_IRG_spline)~
-             1+
-             (1|geeID),
+m0 <- lm(abs(months_to_IRG_spline)~
+             1,
+             #(1|geeID),
           family = poisson(link = "log"),
            data = Peaks, # no_kasanka,#
           na.action=na.fail)
 
-m1 = glmer(abs(months_to_IRG_spline)~
+m1 = lm(abs(months_to_IRG_spline)~
              #scale(abs_Lat)+
              scale(entropy)+
              #scale(LOS)+
@@ -1725,9 +1721,9 @@ m1 = glmer(abs(months_to_IRG_spline)~
              # scale(min_EVI)+  # correlated with amp
              # scale(daylength)+ #correlated with amp and min EVI
              # scale(log(count))+
-             scale(log_colony_size)+
+             scale(log_colony_size),
              # scale(ratio)+
-             (1|geeID),
+             # (1|abs_Lat),
           family = poisson(link = "log"),
            data = Peaks, # no_kasanka,#
           na.action=na.fail)
@@ -1737,29 +1733,82 @@ sims <- DHARMa::simulateResiduals(m1)
 plot(sims)
 dd = dredge(m1)
 dd
-
 # write.table(dd, file = "../output/dredge_absmonthstoIRG.txt")
 ```
 ### best
 ```{r}
-m1_best = glmer(abs(months_to_IRG_spline)~
+m1_best = lm(abs(months_to_IRG_spline)~
              #scale(avg_LOS)+
              scale(max_EVI)+
                # scale(IRG_amp)+
              scale(entropy)+
-             scale(log_colony_size)+
+             scale(log_colony_size),
              # scale(daylength)+
              # scale(min_EVI)+
                # scale(ratio)+
-             (1|geeID),
+             # (1|geeID),
           family = poisson(link = "log"),
            data = Peaks,#
           na.action=na.fail)
 summary(m1_best)
+confint(m1_best)
+
+layout(cbind(c(1,2), c(3,4)))
+plot(m1_best, ask = FALSE)
+
+check_model(m1_best)
+
+# R^2
 r.squaredGLMM(m1_best)
+r2(m1_best)
+
 sims <- DHARMa::simulateResiduals(m1_best)
 plot(sims)
+
+# Intraclass correlation
+icc(m1_best)
+
+# overdispersion
+check_overdispersion(m1_best)
+
+# zero inflation
+check_zeroinflation(m1_best)
+
+# check singularity
+check_singularity(m1_best)
+isSingular(m1_best)
+
+# check collinearity
+check_collinearity(m1_best)
+
+model_performance(m1_best)
+
+compare_performance(m1_best, rank = TRUE)
 ```
+
+## lmer
+```{r}
+l1_best = lm(abs(months_to_IRG_spline)~
+             #scale(avg_LOS)+
+             scale(max_EVI)+
+               # scale(IRG_amp)+
+             scale(entropy)+
+             scale(log_colony_size),
+             # scale(daylength)+
+             # scale(min_EVI)+
+               # scale(ratio)+
+             # (1|geeID),
+          family = poisson(link = "log"),
+           data = Peaks,#
+          na.action=na.fail)
+summary(l1_best)
+check_model(x = l1_best)
+
+check_model
+```
+
+
+
 ### interaction
 ```{r}
 # m1i = glmer(abs(months_to_IRG_spline)~
@@ -1797,12 +1846,13 @@ i = 1
 for(i in 1:length(IDs)){
   df <- Peaks[Peaks$geeID != IDs[i],]
   
-  fits[[i]] <- lmer((abs_months_to_IRG_spline) ~ 
+  fits[[i]] <- lm((abs_months_to_IRG_spline) ~ 
                      #scale(avg_LOS)+
                      scale(max_EVI)+
                      scale(entropy)+
-                     scale(log_colony_size)+
-                   (1|geeID), 
+                     scale(log_colony_size),
+                  family = poisson(link = "log"),
+                   # (1|geeID), 
              data = df)
   summary(fits[[i]])
   r.sq[[i]] <-  r.squaredGLMM(fits[[i]])
@@ -1817,395 +1867,26 @@ library(ggpmisc)
 # https://stackoverflow.com/questions/7549694/add-regression-line-equation-and-r2-on-graph
 my.formula <- y ~ x
 
-ggplot(Peaks, aes(abs(months_to_IRG_spline), predictIRG, col = Location))+
+fit <- lm(abs(months_to_IRG_spline)~ predictIRG, data = Peaks)
+summary(fit)
+ps2 <- ggplot(Peaks, aes(abs(months_to_IRG_spline), predictIRG, col = Location))+
   geom_point()+
   geom_smooth(method = "lm", col = 1)+
-  theme_classic()+
-  stat_poly_eq(formula = my.formula, 
-                aes(label = paste(..rr.label.., sep = "~~~")), 
-                parse = TRUE)
+  theme_classic() #+
+  # stat_poly_eq(formula = my.formula, 
+  #               aes(label = paste(..rr.label.., sep = "~~~")), 
+  #               parse = TRUE)
 
+ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2.png")
 r.sq_df <- sapply(r.sq, unlist)
+```
 
-plot(r.sq_df[2,], ylab = "R^2", xlab = "Dropped Colony",
+
+```{r}
+plot(r.sq_df[2,], ylab = "R^2", xlab = "Dropped Colony Index",
      main = "Leave one Colony Out Model Performance")
 abline(h = mean(r.sq_df[2,]))
 ```
-## spatial glmm
-```{r}
-library(glmmfields)
-library(ggplot2)
-library(dplyr)
-options(mc.cores = parallel::detectCores())
-
-m_spatial <- glmmfields(as.numeric(months_to_IRG_spline) ~
-                          log(count) + amp + ratio + seasonality + (1|geeID),
-  data = Peaks, 
-  #family = Gamma(link = "log"),
-  lat = "Lat", lon = "Long", 
-  nknots = 12, iter = 2000, chains = 4,
-  prior_intercept = student_t(50, 200, 70), 
-  prior_beta = student_t(50, -30, 3),
-  prior_sigma = half_t(50, 0, 3),
-  prior_gp_theta = half_t(50, 0, 10),
-  prior_gp_sigma = half_t(50, 0, 3),
-  seed = 123 # passed to rstan::sampling()
-)
-m_spatial
-```
-
-### plot spatial glmm
-```{r}
-plot(m_spatial, type = "spatial-residual", link = TRUE) +
-  geom_jitter(size = 3, width = 1, height = 1)
-```
-
-
-```{r}
-plot(m_spatial, type = "residual-vs-fitted")
-```
-
-
-## gam
-```{r}
-library(mgcv)
-#Peaks$daylength <- geosphere::daylength(Peaks$Lat, yday(Peaks$month))
-Peaks$Location <- as.factor(Peaks$Location)
-```
-
-### normal
-```{r}
-g <- gam(abs(months_to_IRG_spline)~
-             # s(avg_LOS)+
-             # s(LOS)+
-             s(amp_EVI, k = 10)+ # R2 = 0.32
-             # s(auc_EVI, k = 5)+
-             s(max_EVI, k = 10)+
-             # s(min_EVI, k = 5)+
-             # s(daylength, k = 10)+ # r^2 = 0.37
-             # s(log_colony_size, k = 10)+
-             # s(ratio, k = 5)+
-            # s(Long, Lat, k = 40, bs = "gp")+
-            s(Location, bs = "re"),
-            data = Peaks,
-          method = "REML")
-summary(g)
-plot(g, scale = 0, shade = TRUE, scheme = 2)
-gam.check(g, rep = 500)
-```
-
-#### spatial
-```{r}
-gs <- gam(abs(months_to_IRG_spline)~
-            s(max_EVI)+
-            s(daylength)+
-            s(Long, Lat, k = 10, bs = "tp")+
-            s(Location, bs = "re"),
-            data = Peaks,
-          method = "REML")
-summary(gs)
-plot(gs, scale = 0, shade = TRUE, scheme = 2)
-gam.check(gs, rep = 500)
-AIC(g, gs)
-```
-
-
-### nb
-```{r}
-g_nb <- gam(abs(months_to_IRG_spline)~
-            s(max_EVI)+
-            s(daylength)+
-            #s(Long, Lat, k = 10, bs = "tp")+
-            s(Location, bs = "re"),
-            data = Peaks,
-            family = nb,
-          method = "REML")
-summary(g_nb)
-plot(g_nb, scale = 0, shade = TRUE, scheme = 2)
-gam.check(g_nb, rep = 500)
-```
-
-
-#### spatial
-```{r}
-g_nbs <- gam(abs(months_to_IRG_spline)~
-            s(max_EVI)+
-            s(daylength)+
-            s(Long, Lat, k = 10, bs = "tp")+
-            s(Location, bs = "re"),
-            data = Peaks,
-            family = nb,
-          method = "REML")
-summary(g_nbs)
-plot(g_nbs, scale = 0, shade = TRUE, scheme = 2)
-gam.check(g_nbs, rep = 500)
-```
-
-### tw
-```{r}
-g_tw <- gam(abs(months_to_IRG_spline)~
-            s(max_EVI)+
-            s(daylength)+
-            s(Location, bs = "re"),
-            data = Peaks,
-            family = tw,
-          method = "REML")
-summary(g_tw)
-plot(g_tw, scale = 0, shade = TRUE, scheme = 2)
-gam.check(g_tw, rep = 500)
-
-AIC(g, g_nb, g_tw)
-```
-#### spatial
-```{r}
-g_tws <- gam(abs(months_to_IRG_spline)~
-            s(max_EVI)+
-            s(daylength)+
-            
-              s(Long, Lat, k = 10, bs = "tp")+
-            s(Location, bs = "re"),
-            data = Peaks,
-            family = tw,
-          method = "REML")
-summary(g_tws)
-plot(g_tws)
-gam.check(g_tws, rep = 500)
-
-aics <- AIC(g, gs, g_nb, g_nbs, g_tw, g_tws)
-aics[order(aics$AIC),]
-```
-
-### ziP
-```{r}
-g_ziP <- gam(abs(months_to_IRG_spline)~
-            s(max_EVI)+
-            s(daylength)+
-            s(Location, bs = "re"),
-            data = Peaks,
-            family = ziP,
-          method = "REML")
-summary(g_ziP)
-plot(g_ziP, scale = 0, shade = TRUE, scheme = 2)
-gam.check(g_ziP, rep = 5000)
-
-AIC(g, g_nb, g_tw, g_ziP)
-```
-#### spatial
-```{r}
-g_ziPs <- gam(abs(months_to_IRG_spline)~
-            s(max_EVI, k = 5)+
-            # s(irg, k = 5)+
-            # s(precip)+
-            s(daylength)+
-            # s(month)+
-            # s(year, k = 20)+
-            s(Long, Lat, k = 10, bs = "tp"),
-            #s(Location, bs = "re"),
-            data = Peaks,
-            family = ziP,
-          method = "REML")
-summary(g_ziPs)
-plot(g_ziPs, scale = 0, shade = TRUE, scheme = 2)
-gam.check(g_ziPs, rep = 500)
-
-AIC(g, g_nb, g_tw, g_ziP, gs, g_nbs, g_tws, g_ziPs)
-```
-
-
-
-
-
-# model months to peak EVI
-## dredge
-
-### abs
-```{r}
-no_kasanka <-  Peaks[which(Peaks$geeID != 14),]
-
-m1 = glmer(abs(months_to_EVI_spline)~
-             scale(log(count))+
-             scale(max_EVI)+
-             scale(amp)+
-             scale(seasonality)+
-             (1|geeID),
-          family = poisson(link = "log"),
-          data = Peaks, # no_kasanka,
-          na.action=na.fail)
-          #REML=FALSE)
-summary(m1)
-sims <- simulateResiduals(m1)
-plot(sims)
-dd = dredge(m1)
-dd
-```
-
-### full
-```{r}
-m1 = glmer((months_to_EVI_spline)~scale(log(count))+
-            scale(Long)+
-            scale(amp)+
-            scale(seasonality)+
-            (1|geeID),
-           # family = poisson(link = "log"),
-          data = Peaks, # no_kasanka,
-          na.action=na.fail)
-          #REML=FALSE)
-summary(m1)
-sims <- simulateResiduals(m1)
-plot(sims)
-dd = dredge(m1)
-dd
-```
-## Leave one out cross validation
-```{r}
-IDs <- unique(Colonies$geeID)
-fits <- list()
-r.sq <- list()
-Peaks$predictEVI <- NA
-i = 1
-
-for(i in 1:length(IDs)){
-  df <- Peaks[Peaks$geeID != IDs[i],]
-  
-  fits[[i]] <- lmer(abs(months_to_EVI_spline) ~ 
-                     scale(Long)+
-                      scale(log(count)) + 
-                      scale(seasonality) + 
-                   (1|geeID), 
-             data = df)
-  summary(fits[[i]])
-  r.sq[[i]] <-  r.squaredGLMM(fits[[i]])
-  
-  df_out <- Peaks[Peaks$geeID == locations[i],]
-  Peaks$predictEVI[which(Peaks$geeID == locations[i])] <- 
-    predict(fits[[i]], df_out, allow.new.levels = TRUE)
-}
-
-
-library(ggpmisc)
-# https://stackoverflow.com/questions/7549694/add-regression-line-equation-and-r2-on-graph
-my.formula <- y ~ x
-
-ggplot(Peaks, aes(abs(months_to_EVI_spline), predictEVI, col = Location))+
-  geom_point()+
-  geom_smooth(method = "lm", col = 1)+
-  theme_classic()+
-  stat_poly_eq(formula = my.formula, 
-                aes(label = paste(..rr.label.., sep = "~~~")), 
-                parse = TRUE)
-
-r.sq_df <- sapply(r.sq, unlist)
-
-plot(r.sq_df[2,], ylab = "R^2", xlab = "Dropped Colony",
-     main = "Leave one Colony Out Model Performance")
-abline(h = mean(r.sq_df[2,]))
-```
-
-
-
-# model months to peak Precip
-
-```{r}
-psych::pairs.panels(rs[,c("pR", "pRmax", "pseasonality", "pentropy", "Lat", "Long", "abs_Lat")])
-```
-
-## dredge
-
-### abs
-```{r}
-no_kasanka <-  Peaks[which(Peaks$geeID != 14),]
-
-m1 = lmer(abs(months_to_precip_spline)~
-            scale(log(count))+
-            scale(Long)+
-            scale(amp)+
-            scale(seasonality)+
-            (1|geeID),
-          data = Peaks, # no_kasanka,
-          na.action=na.fail,
-          REML=FALSE)
-dd = dredge(m1)
-dd
-```
-### full
-```{r}
-m1 = lmer((months_to_precip_spline)~scale(log(count))+
-            scale(Long)+
-            scale(amp)+
-            scale(seasonality)+
-            (1|geeID),
-          data = Peaks, # no_kasanka,
-          na.action=na.fail,
-          REML=FALSE)
-dd = dredge(m1)
-dd
-```
-## Leave one out cross validation
-```{r}
-IDs <- unique(Colonies$geeID)
-fits <- list()
-r.sq <- list()
-Peaks$predictPrecip <- NA
-i = 1
-
-for(i in 1:length(IDs)){
-  df <- Peaks[Peaks$geeID != IDs[i],]
-  
-  fits[[i]] <- lmer(abs(months_to_precip_spline) ~ 
-                     scale(Long)+
-                      scale(log(count)) + 
-                      scale(seasonality) + 
-                   (1|geeID), 
-             data = df)
-  summary(fits[[i]])
-  r.sq[[i]] <-  r.squaredGLMM(fits[[i]])
-  
-  df_out <- Peaks[Peaks$geeID == locations[i],]
-  Peaks$predictPrecip[which(Peaks$geeID == locations[i])] <- 
-    predict(fits[[i]], df_out, allow.new.levels = TRUE)
-}
-
-
-library(ggpmisc)
-# https://stackoverflow.com/questions/7549694/add-regression-line-equation-and-r2-on-graph
-my.formula <- y ~ x
-
-ggplot(Peaks, aes(abs(months_to_precip_spline), predictPrecip, col = Location))+
-  geom_point()+
-  geom_smooth(method = "lm", col = 1)+
-  theme_classic()+
-  stat_poly_eq(formula = my.formula, 
-                aes(label = paste(..rr.label.., sep = "~~~")), 
-                parse = TRUE)
-
-r.sq_df <- sapply(r.sq, unlist)
-
-plot(r.sq_df[2,], ylab = "R^2", xlab = "Dropped Colony",
-     main = "Leave one Colony Out Model Performance")
-abline(h = mean(r.sq_df[2,]))
-```
-
-
-
-
-
-## plot time diff on map
-```{r}
-set.seed(42)
-ggplot(Africa)+geom_sf()+
-  geom_jitter(data = Peaks, width = 2, height = 2, 
-              aes(Long, Lat, 
-                  col = as.numeric(months_to_peakIRG),
-                  size = log(peak_colony_size)))+
-  scale_color_gradient2(low = "green", mid = "black", high = "red", 
-                        name = "Months to peak IRG")+
-  theme_classic()+ 
-  labs(size = "ln(Peak Colony Size)")
-```
-
-
-
-
 
 
 
@@ -2681,373 +2362,5 @@ with(Colonies[abs(Colonies$Lat) > 10,], plot(yday(month),
                     ylab = "Peak2 IRG Day",
                     ylim = c(0,365), xlim = c(0,365)))
 abline(1,1)
-```
-
-
-# for longterm data, how do changes in weather lead to changes in bats?
-## Kasanka
-```{r}
-k <- Colonies[Colonies$geeID == 14,]
-
-ggplot(k, aes(x = year(month), y = yday(month)))+
-  geom_point()+
-  geom_line()+
-  geom_point(aes(y = yday(IRG_spline)), col = 3)+
-  geom_line(aes(y = yday(IRG_spline)), col = 3) +
-  # geom_point(aes(y = yday(peak_EVI_day)), col = 6)+
-  # geom_line(aes(y = yday(peak_EVI_day)), col = 6)
-  ylab("Day of the Year")+ 
-  xlab("Year")+
-  theme_bw()
-  
-# how correlated are they?
-with(k[k$peak_colony_ratio > 0.8,], cor(yday(month), yday(IRG_spline)))
-
-```
-## Accra
-```{r}
-a <- Colonies[Colonies$geeID == 10,]
-a$year <- year(a$month)
-
-# remove duplicate year
-## choose event with larger size
-
-
-
-ggplot(a[a$peak_colony_ratio > .8,], aes(x = year(month), y = yday(month)))+
-  geom_point()+
-  geom_line()+
-  geom_point(aes(y = yday(IRG_spline)), col = 3)+
-  geom_line(aes(y = yday(IRG_spline)), col = 3) +
-  # geom_point(aes(y = yday(peak_EVI_day)), col = 6)+
-  # geom_line(aes(y = yday(peak_EVI_day)), col = 6)
-  ylab("Day of the Year")+ 
-  xlab("Year")+
-  theme_bw()
-  
-# how correlated are they?
-with(a[a$peak_colony_ratio > 0.8,], cor(yday(month), yday(IRG_spline)))
-
-```
-
-
-
-### Arrival and departure of bats in Kasanka
-```{r}
-kad <- read.csv("../../../../Dropbox/MPI/Eidolon/Data/Monitoring/Kasanka_Eidolon_Arrival_Departure.csv")
-
-
-```
-
-
-
-```{r}
-IDs <- 1:max(colonies$geeID)
-# Colonies <- data.frame()
-i = 14
-  ID <- i
-  
-  e <- subset(EVI, EVI$geeID == ID)
-  
-  
-  
-  e$time <- ymd_hms(e$startDate)
-  colony <- colonies[colonies$geeID == ID,]
-  colony$time <- ymd_hms(paste0(colony$timestamp, " 12:00:00"))
-  
-  ggplot(colony, aes(x = time, y = Count/1000000))+geom_path()+
-    ylab("Count (in millions)")+
-    ggtitle("Kasanka National Park")+
-    theme_classic()
-  
-  
-  ggplot(colony, aes(x = yday(time), y = ratio))+ # , col = factor(year(time))))+
-    geom_smooth(method = "gam")+
-    geom_point(aes(col = factor(year(time))))+
-    xlab("Day of the Year")+ylab("Ratio of Peak Colony Size")+
-    xlim(c(yday("2003-09-07"),yday("2003-12-28")))+
-    theme_classic()+guides(col=guide_legend(title="Year"))
-  
-    
-  par(mar = c(1,4,1,1), oma = c(1,1,1,1), xpd=FALSE)
-  layout(rbind(1,2))
-  
-  plot(ymd_hms(e$startDate), e$mean, type = "l", lwd = 2,
-       ylab = "EVI", xlab = "", ylim = c(0, 1), col = 3,
-       xlim = c((min(colony$time)-years(1)), (max(colony$time)+years(1))),
-       main = paste0(colonies$Location[colonies$geeID == i][1], ", ",
-                     colonies$Country[colonies$geeID == i][1],
-                     "; ID = ",ID))
-  with(colony, points(time, ratio, type = "o"))
-  mevi1 <- MEVI[MEVI$geeID == ID & MEVI$peak == 1,]
-  mevi2 <- MEVI[MEVI$geeID == ID & MEVI$peak == 2,]
-  # abline(v = ymd_hms(paste0(mevi1$date_EVI," 12:00:00")), col = "orange",
-  #        lwd = (4*mevi1$amp)/max(c(mevi1$amp, mevi2$amp)))
-  # abline(v = ymd_hms(paste0(mevi2$date_EVI," 12:00:00")), col = "brown",
-  #        lwd = (4*mevi2$amp)/max(c(mevi1$amp, mevi2$amp)))
-  # abline(v = colonies$timestamp[colonies$geeID == ID], col = 2, lwd = 2)
-  # legend("topright", legend = c("peak1", "peak2"), col = c("orange", "brown"), lty = 1)
-  
-  time <- e$time
-  evi <- e$mean
-  
-  spl <- smooth.spline(x = time, y = evi)
-  pred <- predict(spl, spar = 0.6)
-  e$pred <- pred$y
-  lines(pred, col=2)
-  
-  pred.prime <- predict(spl, deriv=1)
-  pred.prime$y_scale <- rescale(pred.prime$y, c(0,1))
-  e$pred.prime <- pred.prime$y_scale
-  
-  plot(e$time, pred.prime$y_scale, type = "l", ylab = "scaled IRG", col = 2,
-       xlim = c((min(colony$time)-years(1)), (max(colony$time)+years(1))),
-       ylim = c(0, 1), xlab = "Date")
-
-  with(colony, points(time, ratio, type = "o"))
-  abline(v = ymd_hms(paste0(mevi1$date_IRG," 12:00:00")), col = "orange",
-         lwd = (4*mevi1$amp)/max(c(mevi1$amp, mevi2$amp)))
-  abline(v = ymd_hms(paste0(mevi2$date_IRG," 12:00:00")), col = "brown",
-         lwd = (4*mevi2$amp)/max(c(mevi1$amp, mevi2$amp)))
-
-  # ggplot() +
-  #   geom_line(data = e, aes(x = ymd_hms(startDate), y = pred.prime), col = 2) +
-  #   geom_point(data = colony, aes(x = time, y = ratio)) + ylab("IRG") + xlab("Date")+
-  #   geom_segment(data = colony, aes(x = time, xend = time, y = 0, yend = ratio)) +
-  #   xlim(c(min(colony$time)-years(1), max(colony$time)+years(1))) + 
-  #   theme_bw()
-  
-  C <- data.frame()
-  years <- unique(year(colony$time))
-  
-  for(j in 1:length(years)){
-    d <- colony[year(colony$time) == years[j],]
-    didx <- which(d$ratio == 1)
-    if(length(didx) == 0){
-      didx <- which.max(d$ratio)  
-    }
-    if(length(didx) > 1){
-      if(mean(diff(didx)) == 1) didx <- round(median(didx))
-    }
-    
-    for(k in 1:length(didx)){
-      t1 <- d$time[didx[k]]
-      idx <- which.min(abs(e$time - t1))
-      
-      # Peak EVI
-      evi <- pred$y[idx]
-      idxx <- (idx-10):(idx+10)
-      peak_EVI_day <- e$time[idxx[which.max(pred$y[idxx])]]
-      
-      midx1 <- which.min(abs(ymd_hms(paste0(mevi1$date_EVI, " 12:00:00")) - t1))
-      peak1_EVI_day <- mevi1$date_EVI[midx1]
-      
-      midx2 <- which.min(abs(ymd_hms(paste0(mevi2$date_EVI, " 12:00:00")) - t1))
-      peak2_EVI_day <- mevi2$date_EVI[midx2]
-      
-      # Peak IRG
-      
-      irg <- pred.prime$y[which.min(abs(e$time - t1))]
-      irg_scale <- pred.prime$y_scale[which.min(abs(e$time - t1))]
-      peak_irg_day <- e$time[idxx[which.max(pred.prime$y[idxx])]]
-      
-      midx1 <- which.min(abs(ymd_hms(paste0(mevi1$date_IRG, " 12:00:00")) - t1))
-      peak1_IRG_day <- mevi1$date_IRG[midx1]
-      
-      midx2 <- which.min(abs(ymd_hms(paste0(mevi2$date_IRG, " 12:00:00")) - t1))
-      peak2_IRG_day <- mevi2$date_IRG[midx2]
-      
-      amp1 <- mevi1$amp[midx1]
-      amp2 <- mevi2$amp[midx2]
-        
-      area1 <- mevi1$area[midx1]
-      area2 <- mevi2$area[midx2]
-      
-      qa1 <- mevi1$QA[midx1]
-      qa2 <- mevi2$QA[midx2]
-      
-      c <- data.frame(geeID = d$geeID[didx[k]], Lat = d$Lat[didx[k]], Long = d$Long[didx[k]], 
-                      month = t1, 
-                      peak_colony_size = d$Count[didx[k]],
-                      peak_colony_ratio = d$ratio[didx[k]],
-                      pred_peak_evi_day = peak_EVI_day, 
-                      evi_pred_peak = evi,
-                      peak1_EVI_day,
-                      peak2_EVI_day,
-                      
-                      pred_peak_irg_day = peak_irg_day,
-                      irg_pred_peak = irg, 
-                      irg_pred_scale = irg_scale, 
-                      peak1_IRG_day,
-                      peak2_IRG_day,
-                      amp1,
-                      amp2,
-                      area1,
-                      area2,
-                      qa1,
-                      qa2)
-      C <- rbind(C, c)  
-    }  
-  }
-    
-  # Colonies <- rbind(Colonies, C)
-
-i = 17
-Colonies
-```
-
-
-
-# get gbif 
-```{r occurrence data}
-
-splist <- c('Eidolon helvum')
-keys <- vapply(splist, function(x) name_backbone(name = x)$speciesKey, integer(1))
-eidolon <- occ_search(taxonKey = keys, hasCoordinate = TRUE)
-
-plot(yday(ymd_hms(eidolon$data$eventDate)), eidolon$data$decimalLatitude, 
-     col = year(ymd_hms(eidolon$data$eventDate)))
-year(ymd_hms(eidolon$data$eventDate)) %>% unique
-
-gbif_map <- ggplot(data = Africa)+ geom_sf() +
-  geom_point(data = eidolon$data, aes(x = decimalLongitude, y = decimalLatitude, 
-                                      col = yday(ymd_hms(eidolon$data$eventDate))))+
-  # facet_wrap(~year(ymd_hms(eidolon$data$eventDate)))+
-  theme_classic() +
-  scale_color_gradient2(low = "blue", mid = "yellow", midpoint = 182, high = "red")+
-  xlab("Longitude")+ylab("Latitude")+labs(col = "DoY")
-
-ggplot(data = eidolon$data, aes(x = yday(ymd_hms(eidolon$data$eventDate)), 
-                                      y = decimalLatitude, 
-                                      col = factor(year(ymd_hms(eidolon$data$eventDate)))))+
-  geom_point(alpha = 0.3)+
-  geom_smooth(se = FALSE)+
-  geom_abline(slope = 0, intercept = 0)+
-  labs(col = "Year")+xlab("DoY")+
-  facet_wrap(~factor(year(ymd_hms(eidolon$data$eventDate))))+
-  theme(legend.position = "none")
-
-```
-### split by longitude ----
-```{r}
-
-eidolon$data$decimalLongitude %>% hist
-
-east_africa <- eidolon$data[eidolon$data$decimalLongitude > 20,]
-
-p2 <- ggplot(data = east_africa, 
-       aes(x = yday(ymd_hms(eventDate)),
-           y = decimalLatitude))+
-  geom_smooth(se = FALSE)+
-  geom_point(aes(col = factor(year(ymd_hms(eventDate)))), alpha = 0.3)+
-  geom_abline(slope = 0, intercept = 0)+
-  labs(col = "Year")+xlab("DoY")+ylab("Latitude")+ggtitle("East Africa")+
-  # facet_wrap(~factor(year(ymd_hms(eventDate))))+
-  theme(legend.position = "none")
-
-west_africa <- eidolon$data[eidolon$data$decimalLongitude < 20,]
-
-p1 <- ggplot(data = west_africa, 
-       aes(x = yday(ymd_hms(eventDate)),
-           y = decimalLatitude))+
-  geom_smooth(se = FALSE)+
-  geom_point(aes(col = factor(year(ymd_hms(eventDate)))), alpha = 0.3)+
-  geom_abline(slope = 0, intercept = 0)+
-  labs(col = "Year")+xlab("DoY")+ylab("Latitude")+ggtitle("West Africa")+
-  # facet_wrap(~factor(year(ymd_hms(eventDate))))+
-  theme(legend.position = "none")
-
-ggarrange(p1,p2)
-```
-
-
-## iNaturalist data
-```{r}
-
-library(rinat)
-ed <- get_inat_obs(query = "Eidolon helvum")
-ed <- ed[ed$latitude < 25,]
-
-my_title <- expression(paste("GBIF & iNaturalist ", italic("Eidolon helvum")))
-
-gbif_map +
-  geom_point(data = ed, aes(longitude, latitude, col = yday(ymd(observed_on))))+
-  scale_color_gradient2(low = "blue", mid = "yellow", midpoint = 182, high = "red")+
-  xlab("Longitude")+ylab("Latitude")+labs(col = "DoY")+theme_classic()+
-  ggtitle(my_title)
-
-ggplot(data = ed, aes(x = yday(ymd(observed_on)), 
-                      y = latitude, col = factor(year(ymd(observed_on)))))+
-  geom_point(alpha = 0.3)+
-  geom_smooth(se = FALSE)+
-  geom_abline(slope = 0, intercept = 0)+
-  labs(col = "Year")+xlab("DoY")+
-  facet_wrap(~factor(year(ymd(observed_on))))
-```
-
-
-
-## model inat data
-```{r}
-library(mgcv)
-
-ed <- ed[ed$quality_grade == "research",]
-
-recs <- data.frame(time = c(ymd_hms(ed$time_observed_at), ymd_hms(eidolon$data$eventDate)), 
-                   lat = c(ed$latitude, eidolon$data$decimalLatitude), 
-                   lon = c(ed$longitude, eidolon$data$decimalLongitude), 
-                   source = c(rep("iNat", nrow(ed)), rep("GBIF", nrow(eidolon$data))))
-
-recs$yday <- yday(recs$time)
-recs$month <- month(recs$time)
-
-
-ggplot(Africa)+geom_sf()+
-  geom_point(data = na.omit(recs), aes(lon, lat, col = factor(month)))+
-  facet_wrap(~month)+xlab("Longitude")+ylab("Latitude")+
-  theme(legend.position = "none", axis.text.x = element_text(angle=30, hjust = 1))
-# model species distribution
-# incorporate day of year or week as a covariate
-```
-
-# animate citizen data
-```{r}
-library(gganimate)
-# setwd("../../../../Dropbox/MPI/Eidolon/Plots/SpeciesDistribution/")
-
-p <- ggplot(Africa)+geom_sf()+
-  geom_point(data = na.omit(recs), aes(lon, lat, col = factor(month), 
-                                       group = seq_along(month)), size = 3)+
-  labs(title = 'Eidolon helvum yearly occurrence; month: {round(frame_time)}', 
-       col = "Month", x = 'Longitude', y = 'Latitude') +
-  transition_time(month)+
-  theme_classic()+
-  theme(legend.position = "none")+
-  enter_fade() +
-  exit_shrink()
-
-animate(p, renderer = gifski_renderer())
-
-# p1 <- ggplot(Africa)+geom_sf()+
-#   geom_point(data = na.omit(recs), aes(lon, lat, col = factor(month)))+
-#   geom_density_2d_filled(data = na.omit(recs), aes(lon, lat), alpha = 0.5)+
-#   xlab("Longitude")+ylab("Latitude")+
-#   # facet_wrap(~month)
-#   transition_states(month)
-# 
-# animate(p1, renderer = gifski_renderer())
-```
-
-## model citizen science presence
-```{r}
-# pseudo locations?
-
-# timing?
-
-```
-
-# save
-```{r}
-# save(Colonies, m_spatial, file = "../data/Colony_IRG_fit.robj")
 ```
 

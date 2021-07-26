@@ -2,13 +2,14 @@
 getwd()
 source("./src/IRG_functions.R")
 
-set.seed(123)
+set.seed(42)
 n = 15
 x <- seq.Date(as.Date("2010-01-01"), as.Date("2010-12-01"), length = n)
-y <- rescale(sin(seq(-2,5, length = n))+runif(n, min = -0.01, max = 0.1), 
+y <- rescale(sin(seq(-2.5,4.5, length = n))+runif(n, min = -0.01, max = 0.1), 
              new.min = 0.2, new.max = 0.9)
-precip <- rescale(sin(seq(0,6, length = n))+runif(n, min = -0.3, max = 0.3), 
+precip <- rescale(sin(seq(-1,5, length = n))+runif(n, min = -0.3, max = 0.3), 
                   new.min = 0, new.max = 0.6)
+plot(precip)
 y. <- c(NA, diff(y))
 
 ## add a colony
@@ -49,12 +50,12 @@ abline(v = fit$x[which.max(fit$y)], lty = 2)
 example_peaks = data.frame(time = x, EVI = fit$y, IRG = fit.$y11, 
                            precip, IRP = fitp.$y11,
                            bats = colony$count)
-colors <- c("EVI" = "#009E73", "IRG" = "#D55E00", "Prp" = "#56B4E9", "IRP" = "turquoise", "Count" = "lightgray")
+colors <- c("EVI" = "#009E73", "IRG" = "#D55E00", "Prp" = "lightblue", "IRP" = "turquoise", "Count" = "lightgray")
 gg_peaks <- 
   ggplot(example_peaks, aes(x = time))+
     geom_path(aes(y = EVI, col = "EVI"), size = 1)+
     geom_path(aes(y = IRG, col = "IRG"), size = 1)+
-    geom_col(aes(y = precip, col = "Prp"), alpha = 0.1)+
+    geom_col(aes(y = precip, col = "Prp"), fill = "lightblue", alpha = 0.1)+
   geom_path(aes(y = IRP, col = "IRP"), size = 1)+
     geom_ribbon(aes(ymin = 0, ymax = bats, col = "Count"), alpha = 0.1)+
     geom_path(aes(y = bats), col = 1)+
@@ -77,7 +78,8 @@ gg_peaks <-
     theme(text = element_text(size = 15), 
           # axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
           legend.position = "top",
-          legend.text=element_text(size=8))
+          legend.text=element_text(size=12))+
+  guides(col=guide_legend(nrow=2,byrow=TRUE))
 gg_peaks
 
 #### ggplot
@@ -142,16 +144,16 @@ gg_entropy <-
   scale_x_date(date_labels = "%b") +
   theme(text = element_text(size = 15), 
         legend.title=element_text(size=12),
-        legend.text=element_text(size=8),
-        legend.position = "top")
+        legend.text=element_text(size=12),
+        legend.position = "top")+
+  guides(col=guide_legend(nrow=3,byrow=TRUE))
 
-
-
+gg_entropy
 # Create low and high entropy plots
 # Spread out greenness
 # concentrated greenness
 
 gg_examples <- ggarrange(gg_peaks, gg_entropy, align = "h")
-
-save(gg_peaks, gg_entropy, gg_examples, example_EVI, example_peaks, file = "../../../../Dropbox/MPI/Eidolon/GreenWave/rdata/gg_examples.Rdata")
+gg_examples
+save(gg_peaks, gg_entropy, gg_examples, example_EVI, example_peaks, file = "./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/gg_examples.Rdata")
 load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/gg_examples.Rdata")
