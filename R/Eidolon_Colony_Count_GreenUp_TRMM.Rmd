@@ -1756,10 +1756,7 @@ confint(m1_best)
 layout(cbind(c(1,2), c(3,4)))
 plot(m1_best, ask = FALSE)
 
-check_model(m1_best)
-
 # R^2
-r.squaredGLMM(m1_best)
 r2(m1_best)
 
 sims <- DHARMa::simulateResiduals(m1_best)
@@ -1784,54 +1781,6 @@ check_collinearity(m1_best)
 model_performance(m1_best)
 
 compare_performance(m1_best, rank = TRUE)
-```
-
-## lmer
-```{r}
-l1_best = lm(abs(months_to_IRG_spline)~
-             #scale(avg_LOS)+
-             scale(max_EVI)+
-               # scale(IRG_amp)+
-             scale(entropy)+
-             scale(log_colony_size),
-             # scale(daylength)+
-             # scale(min_EVI)+
-               # scale(ratio)+
-             # (1|geeID),
-          family = poisson(link = "log"),
-           data = Peaks,#
-          na.action=na.fail)
-summary(l1_best)
-check_model(x = l1_best)
-
-check_model
-```
-
-
-
-### interaction
-```{r}
-# m1i = glmer(abs(months_to_IRG_spline)~
-#              (#scale(avg_LOS)+
-#              scale(amp_EVI)+
-#              #scale(auc_EVI)+
-#              scale(max_EVI)+
-#              scale(entropy)+
-#              # scale(daylength)+
-#              # scale(log(count))+
-#              scale(log_colony_size))^2+
-#              (1|geeID),
-#           family = poisson(link = "log"),
-#            data = Peaks, #no_kasanka,#
-#           na.action=na.fail)
-#           #REML=FALSE)
-# summary(m1i)
-# r.squaredGLMM(m1i)
-# sims <- simulateResiduals(m1i)
-# plot(sims)
-# ddi = dredge(m1i)
-# ddi
-# ddi[1]
 ```
 
 ### Leave one out cross validation
