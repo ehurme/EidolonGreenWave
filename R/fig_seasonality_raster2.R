@@ -227,7 +227,7 @@ p_map <- ggplot(e_df, aes(x,y,fill = entropy))+
 p_map
 
 
-ggarrange(fig[[2]], fig[[3]], ncol = 1)
+ggarrange(fig[[1]], fig[[4]], ncol = 1)
 
 avg_peaks
 
