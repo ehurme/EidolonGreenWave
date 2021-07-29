@@ -145,10 +145,10 @@ ggplot(tmp2, aes(x,y))+geom_tile(aes(fill = cmy_spec(evi, entropy, seasonality))
 
 
 save(S,E,P, s,e,p, medium, file = "../../../../Dropbox/MPI/Eidolon/GreenWave/rdata/seasonality_raster.Rdata")
-load("../../../../Dropbox/MPI/Eidolon/GreenWave/rdata/seasonality_raster.Rdata")
+load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/seasonality_raster.Rdata")
 # add colonies
-load("../../../../Dropbox/MPI/Eidolon/GreenWave/rdata/avg_peaks.RData")
-load("../../../../Dropbox/MPI/Eidolon/GreenWave/rdata/colony_count.RData")
+load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/avg_peaks.RData")
+load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/colony_count.RData")
 
 
 plot(S)
@@ -160,40 +160,46 @@ plot(S)
 text(Lat~ Long, labels = c("A", "B", "C", "D"), cex = 1.5,
      data = avg_peaks[avg_peaks$geeID %in% geeidx,])
 
-EVI <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/rm_MOD13Q1_EVI_2000_2020_ptsB_buf67_pix250.csv")
+EVI <- read.csv("./../../../Dropbox/GreenWave/EidolonColonies/rawdata/rm_MOD13Q1_EVI_2000_2020_ptsB_buf67_pix250.csv")
 EVI$time <- as.Date(ymd_hms(EVI$startDate))
-precip <- read.csv("../../../../Dropbox/MPI/Eidolon/Greenwave/data/GEE/ee_precip_chirps_colonies_2000_2020.csv")
-names(precip) <- c("time", 1:17)
-precip$time <- dmy(precip$time)
+precip <- read.csv("./../../../Dropbox/MPI/Eidolon/Greenwave/data/GEE/rm_TRMM_pr_2000_2020_ptsB.csv")
+# names(precip) <- c("time", 1:17)
+precip$time <- ymd_hms(precip$startDate)
 
-cbPalette <- c("#009E73", "#D55E00", "#56B4E9")
+cbPalette <- c("#009E73", "#D55E00", "turquoise", "#56B4E9")
 fig <- list()
-i = 1
+i = 2
 for(i in 1:length(geeidx)){
   xy <- coordinates(cbind(avg_peaks$Long[geeidx[i]], avg_peaks$Lat[geeidx[i]]))
   g <- EVI[EVI$geeID == geeidx[i],]
   e <- g$mean#*1000
-  pr <- precip[,c(1, geeidx[i]+1)]
+  pr <- precip[precip$geeID == geeidx[i],]
   time <- g$time
   pred <- smooth.spline(time, e)
   pred$p <- predict(pred)$y
   timep <- as.Date(pr$time)
-  pp <- pr[,2]
+  pp <- pr$mean
+  plot(pp, type = "l")
   predp <- smooth.spline(timep, pp)
+  plot(predp, type = "l")
+  prp <- predict(predp, as.numeric(time))$y
+  # plot(prp)
+  # prp <- rescale(prp, new.min = 0, new.max = 0.5)
+  irp <- c(NA, diff(prp))/(max(diff(prp))*3)
   
   irg <- c(NA, diff(pred$p))
-  evi <- data.frame(time, evi = pred$p, irg, 
-                    precip = predict(predp, as.numeric(time))$y)
-  evi$precip <- rescale(evi$precip)
+  evi <- data.frame(time, evi = pred$p, irg, irp,
+                    precip = prp)
+  
   evi_mlt <- reshape2::melt(evi, "time")
   c <- reg_colonies[reg_colonies$geeID == geeidx[i],]
   
   fig[[i]] <- 
     ggplot(evi_mlt[evi_mlt$variable != "precip",], 
            aes(time, value, col = variable, fill = variable))+
+    geom_col(data = evi_mlt[evi_mlt$variable == "precip",], alpha = 0.5,
+             aes(time, value), col = "lightblue", fill = "lightblue", inherit.aes = FALSE)+
     geom_line(size = 1)+
-    geom_col(data = evi_mlt[evi_mlt$variable == "precip",], alpha = 0.05,
-             aes(time, value, col = variable, fill = variable), inherit.aes = FALSE)+
     scale_color_manual(values=cbPalette)+
     xlim(c(as.Date("2010-01-01"),
            #c(min(reg_colonies$month[reg_colonies$geeID == geeidx[i]]), 
@@ -203,7 +209,8 @@ for(i in 1:length(geeidx)){
                                      as.Date("2021-01-01"), by = "year"),
                linetype = "dashed", col = "gray")+
     geom_hline(yintercept = 0, col = "gray")+
-    ggtitle(paste0(LETTERS[i],". ", avg_peaks$Location[geeidx[i]]))+
+    ggtitle(#paste0(LETTERS[i],". ", 
+                   avg_peaks$Location[geeidx[i]])+
     geom_area(data = c, aes(month, y = count/max(count, na.rm = TRUE)), # *max(evi$evi)), 
               col = 1, alpha = 0.1, inherit.aes = FALSE)+
     theme(legend.position = "none", 
@@ -211,6 +218,7 @@ for(i in 1:length(geeidx)){
           text = element_text(size = 15))
   fig[[i]]
 }
+fig[[4]]
 
 e_df <- as.data.frame(E, xy = TRUE)
 
@@ -232,11 +240,11 @@ ggarrange(fig[[1]], fig[[4]], ncol = 1)
 avg_peaks
 
 
-x11()
-
-ggarrange(ggarrange(fig[[1]], fig[[2]], ncol = 1), 
+fig2 <- ggarrange(ggarrange(fig[[1]], fig[[2]], ncol = 1, labels = c("A", "B")), 
          ggarrange(ggarrange(gg_peaks, gg_entropy, align = "h"), 
                    p_map, ncol = 1, 
                    heights = c(0.3, 0.7), widths = c(1,1)),
-         ggarrange(fig[[4]], fig[[3]], ncol = 1), nrow = 1, # labels = c("A","","C","B","","D"),
+         ggarrange(fig[[4]], fig[[3]], ncol = 1, labels = c("C", "D")), nrow = 1, #labels = c("A","","C","B","B","D"),
          widths = c(c(0.3,0.4,0.3)))
+fig2
+ggsave(fig2, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig2_TRMM.png", width = 20, height = 11)
