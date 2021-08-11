@@ -1070,15 +1070,22 @@ for(i in 1:length(IDs)){
     
     y$p10 <- rollsum(y$precipitation, k = 10, na.pad = TRUE)
     y$p20 <- rollsum(y$precipitation, k = 20, na.pad = TRUE)
+    
+    y %>% group_by(date)
+    
     # 10 days with total of 25 mm total rainfall
+    plot(y$time, y$p10, type = "o", col = (y$p10 >25)+1)
+    lines(y$time, y$p20)
     
     idx10 <- which(y$p10 > 25)
     
     # then 20 day with > 20 mm total rainfall
     idx20 <- which(y$p20 > 20)
     
+    if(idx10)
+    
     for(k in 1:length(idx10)){
-      
+    if(idx10)  
       
     }
      
