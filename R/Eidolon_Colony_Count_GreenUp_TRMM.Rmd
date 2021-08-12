@@ -1055,49 +1055,58 @@ load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks_TRMM.RData")
 ```{r}
 dailyp <- read.csv("../../../../Dropbox/MPI/Eidolon/GreenWave/data/GEE/TRMM_3hr_DailyPrecip_EidolonColonies.csv")
 dailyp$time <- dmy(dailyp$system.time_start)
-  
+rain_onset <- data.frame()
 i = 1
 for(i in 1:length(IDs)){
   p <- dailyp[dailyp$geeID == IDs[i],]
+  tenp <- p %>% group_by(year = year(time), 
+                            p10 = cut(time, "10 days")) %>% 
+  summarise(p = sum(precipitation))
+  twentyp <- p %>% group_by(year = year(time), 
+                               p20 = cut(time, "20 days")) %>% 
+  summarise(p = sum(precipitation))
+  
   years <- unique(year(p$time))
   j = 1
   for(j in 1:length(years)){
-    y_idx <- which(year(p$time) == years[j])
-    y <- dailyp[y_idx,]
-    plot(y$time, y$precipitation, type = "o")
-    
-    min_y <- min(y$mm)
-    
-    y$p10 <- rollsum(y$precipitation, k = 10, na.pad = TRUE)
-    y$p20 <- rollsum(y$precipitation, k = 20, na.pad = TRUE)
-    
-    y %>% group_by(date)
     
     # 10 days with total of 25 mm total rainfall
-    plot(y$time, y$p10, type = "o", col = (y$p10 >25)+1)
-    lines(y$time, y$p20)
-    
-    idx10 <- which(y$p10 > 25)
+    tp <- tenp[tenp$year == years[j],]
+    tp_idx <- which(tp$p > 25)
     
     # then 20 day with > 20 mm total rainfall
-    idx20 <- which(y$p20 > 20)
+    twp <- twentyp[twentyp$year == years[j],]  
+    twp_idx <- which(twp$p > 20)
     
-    if(idx10)
+    plot(ymd(tp$p10), tp$p, type = "o")
+    points(ymd(tp$p10[tp_idx]), tp$p[tp_idx], pch = 16)
     
-    for(k in 1:length(idx10)){
-    if(idx10)  
-      
-    }
-     
+    overlap <- which(tp$p10 %in% twp$p20[twp_idx])
+    points(ymd(tp$p10[overlap]), tp$p[overlap], pch = 16, col = 2)
+    
+    onset <- NA
+    ii <- 1
+    try({
+      while(is.na(onset)){
+        if(any(tp_idx[ii]+1 == overlap)) onset <- ymd(tp$p10[tp_idx[ii]])
+        ii <- ii + 1
+      }
+    })
+  if(is.na(onset)){
+    onset <- tp$p10[min(which(tp$p > 25))]
   }
-  plot(p$time, p$mm, type = "o", col = (p$mm > 25)+1, 
-       main = unique(reg_colonies$Location[reg_colonies$geeID == i])) 
+  tmp <- data.frame(geeID = IDs[i], year = years[j], onset)
+  rain_onset <- rbind(rain_onset, tmp)
+  }
+  plot(p$time, p$precipitation, type = "o", # col = (p$mm > 45)+1, 
+       main = unique(reg_colonies$Location[reg_colonies$geeID == i]))
+  abline(v = rain_onset$onset[rain_onset$geeID == i], col = 2, lwd = 2, lty = 2)
 }
 
-20*365
 ```
 
 
+## alternatively 45mm in one month would do it...
 
 # plot each peak and env data around it
 ```{r}
@@ -1961,481 +1970,5 @@ r.sq_df <- sapply(r.sq, unlist)
 plot(r.sq_df[2,], ylab = "R^2", xlab = "Dropped Colony Index",
      main = "Leave one Colony Out Model Performance")
 abline(h = mean(r.sq_df[2,]))
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## save peakIRG models
-```{r}
-# save(fit, fits, fiti, fita, m_spatial, r.sq_df, Peaks, file = "../rdata/Eidolon_IRG_models.robj")
-# load("../rdata/Eidolon_IRG_models.robj")
-```
-
-# model abs months to peak IRG
-```{r}
-Colonies$abs_months_to_peakIRG <- abs(Colonies$months_to_peakIRG)
-psych::pairs.panels(Colonies[Colonies$n > 6, c("months_to_peakIRG", "abs_Lat","Long","amp","log_colony_size", "seasonality", "entropy", "Ra")])
-
-hist(na.omit(Colonies$months_to_peakIRG[Colonies$n > 6]) %>% abs %>%  as.numeric, 
-     main = "", xlab = "Days to peak IRG", breaks = 11)
-```
-## glmm
-```{r}
-
-Peaks <- na.omit(Colonies[Colonies$n > 6,])
-
-afit <- glmer(as.numeric(abs(months_to_peakIRG)) ~ (Lat) + Long + amp + 
-              log(peak_colony_size) + seasonality + (1|geeID), 
-             family = Gamma,
-            data = Peaks)
-summary(afit)
-
-afiti <- lmer(as.numeric(abs(months_to_peakIRG)) ~ ((Lat) + Long)^2 + amp + 
-               log(peak_colony_size) + seasonality + (1|geeID), 
-           data = Peaks)
-summary(afiti)
-anova(afit, afiti)
-
-afita <- lmer(as.numeric(abs(months_to_peakIRG)) ~ scale(abs(Lat)) + scale(Long) + 
-               scale(amp) + 
-               scale(log(peak_colony_size)) + 
-               # scale(seasonality) + 
-               (1|geeID),
-             data = Peaks)
-summary(afita)
-
-afits <- lmer(as.numeric(abs(months_to_peakIRG)) ~ scale(Long) + 
-               scale(log(peak_colony_size)) + scale(seasonality) + (1|geeID),
-             data = Peaks)
-summary(afits)
-
-# anova(fita, fits)
-AIC(afit, afiti, afita, afits)
-
-```
-## summary for best afit
-```{r}
-plot(afits)
-summary(afits)
-r.squaredGLMM(afits)
-confint(afits)
-
-# What is going on with residuals?
-Peaks[which(abs(residuals(afits))>4),]
-
-```
-
-## calculate and plot residuals
-```{r}
-Peaks$mp_glm_residuals <- residuals(afits)
-ggplot(Africa)+geom_sf()+
-  geom_jitter(data = Peaks, 
-              aes(Long, Lat, colour = abs(mp_glm_residuals)), 
-              size = 3, width = 1, height = 1) +
-  scale_color_gradient2(midpoint = 2, high = "darkred", low = "blue")+
-  theme_classic()
-```
-
-
-
-## spatial glmm
-```{r}
-library(glmmfields)
-library(ggplot2)
-library(dplyr)
-options(mc.cores = parallel::detectCores())
-
-ma_spatial <- glmmfields(as.numeric(abs(months_to_peakPrecip)) ~
-                          log(peak_colony_size) + amp + seasonality + (1|geeID),
-  data = Peaks, 
-  #family = Gamma(link = "log"),
-  lat = "Lat", lon = "Long", 
-  nknots = 12, iter = 2000, chains = 4,
-  prior_intercept = student_t(50, 200, 70), 
-  prior_beta = student_t(50, -30, 3),
-  prior_sigma = half_t(50, 0, 3),
-  prior_gp_theta = half_t(50, 0, 10),
-  prior_gp_sigma = half_t(50, 0, 3),
-  seed = 123 # passed to rstan::sampling()
-)
-mp_spatial
-```
-
-### plot spatial glmm
-```{r}
-plot(ma_spatial, type = "spatial-residual", link = TRUE) +
-  geom_jitter(size = 3, width = 1, height = 1)
-```
-
-
-```{r}
-plot(ma_spatial, type = "residual-vs-fitted")
-```
-
-
-## Leave one out cross validation
-```{r}
-locations <- unique(Colonies$geeID)
-pfits <- list()
-r.sq <- list()
-Peaks$predictPrecip <- NA
-i = 1
-
-for(i in 1:length(locations)){
-  df <- Peaks[Peaks$geeID != locations[i],]
-  
-  pfits[[i]] <- lmer(as.numeric(months_to_peakPrecip) ~ Long + 
-                 log(peak_colony_size) + seasonality + 
-                   (1|geeID), 
-             data = df[df$peak_colony_ratio > 0.8,])
-  summary(pfits[[i]])
-  r.sq[[i]] <-  r.squaredGLMM(pfits[[i]])
-  
-  df_out <- Peaks[Peaks$geeID == locations[i],]
-  Peaks$predictPrecip[which(Peaks$geeID == locations[i])] <- 
-    predict(pfits[[i]], df_out, allow.new.levels = TRUE)
-}
-
-
-library(ggpmisc)
-# https://stackoverflow.com/questions/7549694/add-regression-line-equation-and-r2-on-graph
-my.formula <- y ~ x
-
-ggplot(Peaks, aes(months_to_peakPrecip, predictPrecip))+
-  geom_point()+
-  geom_smooth(method = "lm", col = 1)+
-  theme_classic()+
-  stat_poly_eq(formula = my.formula, 
-                aes(label = paste(..rr.label.., sep = "~~~")), 
-                parse = TRUE)
-
-r.sq_dfp <- sapply(r.sq, unlist)
-
-plot(r.sq_dfp[2,])
-abline(h = mean(r.sq_dfp[2,]))
-```
-## plot time diff on map
-```{r}
-set.seed(42)
-ggplot(Africa)+geom_sf()+
-  geom_jitter(data = Peaks, width = 2, height = 2, 
-              aes(Long, Lat, 
-                  col = as.numeric(months_to_peakPrecip),
-                  size = log(peak_colony_size)))+
-  scale_color_gradient2(low = "green", mid = "black", high = "red", 
-                        name = "Months to peak Precip")+
-  theme_classic()+ 
-  labs(size = "ln(Peak Colony Size)")
-```
-## save peakPrecip models
-```{r}
-# save(pfit, pfits, pfiti, pfita, mp_spatial, r.sq_dfp, Peaks, file = "../rdata/Eidolon_Precip_models.robj")
-```
-
-
-
-
-# model days to peak Precip
-## days
-
-## months
-```{r}
-Colonies$months_to_peakPrecip 
-
-psych::pairs.panels(Colonies[Colonies$n > 6, c("months_to_peakPrecip", "abs_Lat","Long","amp","log_colony_size", "seasonality", "entropy", "Ra")])
-
-hist(na.omit(Colonies$months_to_peakPrecip[Colonies$n > 6]) %>% as.numeric, 
-     main = "", xlab = "Months to peak Precip", breaks = 11)
-```
-
-## glmm
-```{r}
-Peaks <- na.omit(Colonies[Colonies$n > 6,])
-
-pfit <- lmer(as.numeric(months_to_peakPrecip) ~ (Lat) + Long + amp + 
-              log(peak_colony_size) + seasonality + (1|geeID), 
-            data = Peaks)
-summary(pfit)
-
-pfiti <- lmer(as.numeric(months_to_peakPrecip) ~ ((Lat) + Long)^2 + amp + 
-               log(peak_colony_size) + seasonality + (1|geeID), 
-           data = Peaks)
-summary(pfiti)
-anova(pfit, pfiti)
-
-pfita <- lmer(as.numeric(months_to_peakPrecip) ~ scale(abs(Lat)) + scale(Long) + 
-               scale(amp) + 
-               scale(log(peak_colony_size)) + 
-               # scale(seasonality) + 
-               (1|geeID),
-             data = Peaks)
-summary(pfita)
-
-pfits <- lmer(as.numeric(months_to_peakPrecip) ~ scale(Long) + 
-               scale(log(peak_colony_size)) + scale(seasonality) + (1|geeID),
-             data = Peaks)
-summary(pfits)
-
-# anova(pfita, pfits)
-AIC(pfit, pfiti, pfita, pfits)
-
-```
-
-## summary for best pfit
-```{r}
-plot(pfits)
-summary(pfits)
-r.squaredGLMM(pfits)
-confint(pfits)
-
-# What is going on with residuals?
-Peaks[which(abs(residuals(pfits))>4),]
-
-```
-
-## calculate and plot residuals
-```{r}
-Peaks$mp_glm_residuals <- residuals(pfits)
-ggplot(Africa)+geom_sf()+
-  geom_jitter(data = Peaks, 
-              aes(Long, Lat, colour = abs(mp_glm_residuals)), 
-              size = 3, width = 1, height = 1) +
-  scale_color_gradient2(midpoint = 2, high = "darkred", low = "blue")+
-  theme_classic()
-```
-
-
-## spatial glmm
-```{r}
-library(glmmfields)
-library(ggplot2)
-library(dplyr)
-options(mc.cores = parallel::detectCores())
-
-mp_spatial <- glmmfields(as.numeric(months_to_peakPrecip) ~
-                          log(peak_colony_size) + amp + seasonality + (1|geeID),
-  data = Peaks, 
-  #family = Gamma(link = "log"),
-  lat = "Lat", lon = "Long", 
-  nknots = 12, iter = 2000, chains = 4,
-  prior_intercept = student_t(50, 200, 70), 
-  prior_beta = student_t(50, -30, 3),
-  prior_sigma = half_t(50, 0, 3),
-  prior_gp_theta = half_t(50, 0, 10),
-  prior_gp_sigma = half_t(50, 0, 3),
-  seed = 123 # passed to rstan::sampling()
-)
-mp_spatial
-```
-
-### plot spatial glmm
-```{r}
-plot(mp_spatial, type = "spatial-residual", link = TRUE) +
-  geom_jitter(size = 3, width = 1, height = 1)
-```
-
-
-```{r}
-plot(mp_spatial, type = "residual-vs-fitted")
-```
-
-
-## Leave one out cross validation
-```{r}
-locations <- unique(Colonies$geeID)
-pfits <- list()
-r.sq <- list()
-Peaks$predictPrecip <- NA
-i = 1
-
-for(i in 1:length(locations)){
-  df <- Peaks[Peaks$geeID != locations[i],]
-  
-  pfits[[i]] <- lmer(as.numeric(months_to_peakPrecip) ~ Long + 
-                 log(peak_colony_size) + seasonality + 
-                   (1|geeID), 
-             data = df[df$peak_colony_ratio > 0.8,])
-  summary(pfits[[i]])
-  r.sq[[i]] <-  r.squaredGLMM(pfits[[i]])
-  
-  df_out <- Peaks[Peaks$geeID == locations[i],]
-  Peaks$predictPrecip[which(Peaks$geeID == locations[i])] <- 
-    predict(pfits[[i]], df_out, allow.new.levels = TRUE)
-}
-
-
-library(ggpmisc)
-# https://stackoverflow.com/questions/7549694/add-regression-line-equation-and-r2-on-graph
-my.formula <- y ~ x
-
-ggplot(Peaks, aes(months_to_peakPrecip, predictPrecip))+
-  geom_point()+
-  geom_smooth(method = "lm", col = 1)+
-  theme_classic()+
-  stat_poly_eq(formula = my.formula, 
-                aes(label = paste(..rr.label.., sep = "~~~")), 
-                parse = TRUE)
-
-r.sq_dfp <- sapply(r.sq, unlist)
-
-plot(r.sq_dfp[2,])
-abline(h = mean(r.sq_dfp[2,]))
-```
-## plot time diff on map
-```{r}
-set.seed(42)
-ggplot(Africa)+geom_sf()+
-  geom_jitter(data = Peaks, width = 2, height = 2, 
-              aes(Long, Lat, 
-                  col = as.numeric(months_to_peakPrecip),
-                  size = log(peak_colony_size)))+
-  scale_color_gradient2(low = "green", mid = "black", high = "red", 
-                        name = "Months to peak Precip")+
-  theme_classic()+ 
-  labs(size = "ln(Peak Colony Size)")
-```
-## save peakPrecip models
-```{r}
-# save(pfit, pfits, pfiti, pfita, mp_spatial, r.sq_dfp, Peaks, file = "../rdata/Eidolon_Precip_models.robj")
-```
-
-
-
-
-# GAM
-```{r}
-library(mgcv)
-colonies
-
-pfitgam <- gam(as.numeric(months_to_peakIRG) ~ s(seasonality) + s(Long) + s(amp) + s(log(peak_colony_size)), 
-              data = Peaks, 
-              method = "REML")
-plot(pfitgam)
-```
-
-
-
-```{r}
-# as.Date(Colonies$month) - Colonies$peak1_EVI_day
-# as.Date(Colonies$month) - Colonies$peak2_EVI_day
-layout(cbind(c(1:2)))
-
-with(Peaks, plot(yday(month), 
-                    yday(peak_EVI_day), col = geeID, pch = 16,
-                    ylab = "Predicted Peak EVI day",
-                    xlab = "Peak Colony Day",
-                    ylim = c(0,365), xlim = c(0,365)))
-abline(1,1)
-
-with(Peaks, plot(yday(month), 
-                    yday(max_peak_EVI_day), col = geeID, pch = 16,
-                    ylab = "Peak EVI day",
-                    xlab = "Peak Colony Day",
-                    ylim = c(0,365), xlim = c(0,365)))
-abline(1,1)
-
-```
-
-
-```{r}
-with(Peaks, plot(yday(month), 
-                    yday(IRG_spline), col = geeID, pch = 16,
-                    ylab = "Predicted Peak IRG Day",
-                    ylim = c(0,365), xlim = c(0,365)))
-abline(1,1)
-
-with(Peaks, plot(yday(month), 
-                    yday(peak1_IRG_day), col = geeID, pch = 16,
-                    ylab = "Peak1 IRG Day",
-                    ylim = c(0,365), xlim = c(0,365)))
-abline(1,1)
-
-with(Peaks, plot(yday(month), 
-                    yday(peak2_IRG_day), col = geeID, pch = 16,
-                    ylab = "Peak2 IRG Day",
-                    ylim = c(0,365), xlim = c(0,365)))
-abline(1,1)
-```
-```{r}
-ggplot(Colonies, aes(x = abs(Lat), y = days_to_peak_IRG, col = factor(geeID)))+geom_point()+geom_hline(yintercept = 0)
-```
-
-
-```{r}
-ggplot(Colonies, aes(x = yday(month), 
-                     y = yday(pred_peak_irg_day), col = Lat))+geom_point()+
-  geom_abline(slope = 1, intercept = 0)
-
-
-ggplot(Colonies, aes(y = (as.Date(month) - as.Date(pred_peak_irg_day)), x = Lat))+geom_point()
-
-
-```
-
-
-
-
-```{r}
-with(Colonies[abs(Colonies$Lat) > 10,], plot(yday(month), 
-                    yday(pred_peak_irg_day), col = geeID, pch = 16,
-                    ylab = "Predicted Peak IRG Day",
-                    ylim = c(0,365), xlim = c(0,365)))
-abline(1,1)
-
-with(Colonies[abs(Colonies$Lat) > 10,], plot(yday(month), 
-                    yday(peak1_IRG_day), col = geeID, pch = 16,
-                    ylab = "Peak1 IRG Day",
-                    ylim = c(0,365), xlim = c(0,365)))
-abline(1,1)
-
-with(Colonies[abs(Colonies$Lat) > 10,], plot(yday(month), 
-                    yday(peak2_IRG_day), col = geeID, pch = 16,
-                    ylab = "Peak2 IRG Day",
-                    ylim = c(0,365), xlim = c(0,365)))
-abline(1,1)
 ```
 
