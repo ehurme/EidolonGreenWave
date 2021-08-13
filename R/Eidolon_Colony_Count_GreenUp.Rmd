@@ -33,7 +33,6 @@ source("../src/IRG_functions.R")
 load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/colony_count.RData")
 ```
 
-<<<<<<< HEAD
 ## summarize
 ```{r}
 colonies$Count[colonies$Location == "Kasanka"] %>% summary
@@ -46,7 +45,7 @@ count_sum <- colonies %>% group_by(Country, Location) %>%
             interval = median(diff(date)),
     min_max = paste0(round(min(Count, na.rm = TRUE), digits = -2), "-", 
                              round(max(Count, na.rm = TRUE), -2)))
-write.csv(count_sum)
+# write.csv(count_sum)
 ```
 
 Acknowledgements
@@ -54,7 +53,7 @@ Acknowledgements
 ack <- unique(paste0(colonies$Country, ": ", colonies$Observer))
 ack[order(ack)]
 
-write.csv(ack, file = )
+# write.csv(ack, file = )
 ```
 
 # load GEE data
@@ -257,7 +256,7 @@ fig1 <-
   guides(size = guide_legend(nrow = 2, title = "Avg Peak Size"))+
   viridis::scale_color_viridis(name = "Month", option = "D")
 fig1
-ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map.png")
+# ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map.png")
 save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size.RData")
 ```
 
@@ -273,6 +272,7 @@ EVI$month <- month(EVI$time)
 EVI_monthly <- EVI %>% group_by(geeID, year, month) %>% 
   summarise(EVI = mean(mean, na.rm = TRUE))
 
+IDs <- 1:17
 for(i in 1:length(IDs)){
   em <- EVI_monthly[EVI_monthly$geeID == IDs[i],]
   # monthly mean
@@ -386,9 +386,9 @@ for(i in 1:length(IDs)){
   lines(as.Date(p$time), p$pred/max(p$pred), col = "darkblue")
   
   ## get derivative of EVI -> IRG
-  # pred.prime <- predict(spl, deriv=1)
-  # pred.prime$y_scale <- rescale(pred.prime$y, c(0,1))
-  # e$pred.prime <- pred.prime$y_scale
+  pred.prime <- predict(spl, deriv=1)
+  pred.prime$y_scale <- rescale(pred.prime$y, new.min = -1, new.max = 1)
+  e$IRG <- pred.prime$y_scale
   
   # # get derivative of precipitation
   predp.prime <- predict(spl_p, deriv=1)
@@ -490,8 +490,6 @@ save(colonies, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/regul
 load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/regular_colonies.Rdata")
 # (rs$daylength) %>% plot
 ```  
-
-
 
 # Check peak colony month
 ## find colony peaks
@@ -683,8 +681,6 @@ for(i in 1:length(IDs)){
   
 }
 
-
-
 ```
 # summarize sd and mean date of phenology and peak count
 ```{r}
@@ -719,7 +715,7 @@ rs_max_sum <- rs_max %>% group_by(geeID) %>%
                                                       type = "angles", units = "radians", modulo = "2pi"))[2],
             entropy = entropy[which.max(entropy)])
 rs_max_sum
-write.csv(rs_max_sum)
+# write.csv(rs_max_sum)
 
 HR_test(data = circular(month(round_date(rs_max$EVI_spline, unit = "months"))*2*pi/12, 
                                                       type = "angles", units = "radians", modulo = "2pi"))
@@ -733,6 +729,9 @@ round(circ.mean.month(9:12),1)
 mean(9:12)
 View(rs_max_sum)
 round(rs_max_sum[,"EVI_HR"],1)
+
+save(rs, rs_max, rs_max_sum, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/rs_max_sum.Rdata")
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/rs_max_sum.Rdata")
 ```
 
 # Table S3
