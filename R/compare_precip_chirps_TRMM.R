@@ -49,9 +49,6 @@ d %>% round(digits = 2)
 # cpp %>% round(digits = 2)
 # cppp %>% round(digits = 2)
 
-
-
-
 data1 <- rvonmises(n=20, mu=circular(0), kappa=3)
 data1 %>% plot
 data2 <- rvonmises(n=20, mu=circular(pi), kappa=2)
@@ -61,9 +58,32 @@ watson.williams.test(list(data1, data2))
 
 ###
 rs_max
-#+facet_grid(~geeID)
-### average month
+p_max <- data.frame(chirps = rs_max$precip_spline, trmm = rs_max_TRMM$precip_spline, geeID = rs$geeID)
+d_max <- {}
+i <- 1
+for(i in 1:length(IDs)){
+  pp <- p_max[p_max$geeID == IDs[i],]
+  # correlation isn't great. Points aren't in a line but clustered
+  # cpp[i] <- cor(sin(pi*month(pp$chirps)/12), sin(pi*month(pp$trmm)/12), use = "pairwise.complete.obs")
+  y = as.circular(pi*month(pp$chirps)/12)
+  x = as.circular(pi*month(pp$trmm)/12)
+  plot(x, stack = TRUE, bins = 100)
+  points(y-.1, col = 2, stack = TRUE, bins = 100)
+  print(table(round(na.omit(pp$chirps - pp$trmm)/(30*24*3600),0)))
+  
+  test <- t.test(difftime(pp$chirps, pp$trmm, units = "weeks")/4)
+  print(test)
+  d_max[i] <- as.numeric(test$p.value)
+}
+hist(d_max, breaks = 17)
+d_max %>% round(2)
 
+### average month
+rs_max_sum$precip_month
+rs_max_sum_TRMM$precip_month
+
+rs_max_sum$precipp_month
+rs_max_sum_TRMM$precipp_month
 ### intensity
 
 ### HR
@@ -73,6 +93,43 @@ rs_max
 
 ### average month
 
+rs_max_sum$precipp_month
+rs_max_sum_TRMM$precipp_month
+
+pp_max <- data.frame(chirps = rs_max$precipp_month, 
+                     trmm = month(rs_max_TRMM$precip_pspline), 
+                     geeID = rs$geeID)
+d_max <- {}
+i <- 1
+for(i in 1:length(IDs)){
+  pp <- pp_max[pp_max$geeID == IDs[i],]
+  # correlation isn't great. Points aren't in a line but clustered
+  # cpp[i] <- cor(sin(pi*month(pp$chirps)/12), sin(pi*month(pp$trmm)/12), use = "pairwise.complete.obs")
+  y = as.circular(pi*month(pp$chirps)/12)
+  x = as.circular(pi*month(pp$trmm)/12)
+  plot(x, stack = TRUE, bins = 100)
+  points(y-.1, col = 2, stack = TRUE, bins = 100)
+  print(table(round(na.omit(pp$chirps - pp$trmm)/(30*24*3600),0)))
+  
+  test <- t.test(difftime(pp$chirps, pp$trmm, units = "weeks")/4)
+  print(test)
+  d_max[i] <- as.numeric(test$p.value)
+}
+hist(d_max, breaks = 17)
+d_max %>% round(2)
+
+
 ### intensity
 
 ### HR
+
+
+
+## EVI
+
+rs_max %>% group_by(geeID) %>%
+  summarise(EVI_month = round(circ.mean.month(month(round_date(EVI_spline, unit = "months"))),1),
+            EVI_model = round(circ.mean.month(month(round_date(EVI_model, unit = "months"))),1),
+            IRG_month = round(circ.mean.month(month(round_date(IRG_spline, unit = "months"))),1),
+            IRG_model = round(circ.mean.month(month(round_date(IRG_model, unit = "months"))),1)) %>% View
+

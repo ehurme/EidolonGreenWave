@@ -43,7 +43,7 @@ count_sum <- colonies %>% group_by(Country, Location) %>%
             interval = median(diff(date)),
     min_max = paste0(round(min(Count, na.rm = TRUE), digits = -2), "-", 
                              round(max(Count, na.rm = TRUE), -2)))
-# write.csv(count_sum)
+write.csv(count_sum)
 ```
 
 Acknowledgements
@@ -254,7 +254,7 @@ fig1 <-
   guides(size = guide_legend(nrow = 2, title = "Avg Peak Size"))+
   viridis::scale_color_viridis(name = "Month", option = "D")
 fig1
-# ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
+ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
 save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
 ```
 
@@ -683,9 +683,10 @@ for(i in 1:length(IDs)){
 }
 
 unique(paste0(Peaks$Country, ", ", Peaks$Location))
+
+
+
 ```
-
-
 # summarize sd and mean date of phenology and peak count
 ```{r}
 rs_max_sum <- rs_max %>% group_by(geeID) %>%
@@ -734,9 +735,7 @@ mean(9:12)
 View(rs_max_sum)
 round(rs_max_sum[,"EVI_HR"],1)
 
-# write.csv(rs_max_sum, file = "../../../../Dropbox/MPI/Eidolon/GreenWave/data/phen_summary.csv")
-save(rs, rs_max, rs_max_sum, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/rs_max_sum_TRMM.Rdata")
-load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/rs_max_sum_TRMM.Rdata")
+write.csv(rs_max_sum, file = "../../../../Dropbox/MPI/Eidolon/GreenWave/data/phen_summary.csv")
 ```
 
 # Table S3
@@ -1053,6 +1052,7 @@ load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks_TRMM.RData")
 ```
 
 # rain onset
+## daily
 ```{r}
 dailyp <- read.csv("../../../../Dropbox/MPI/Eidolon/GreenWave/data/GEE/TRMM_3hr_DailyPrecip_EidolonColonies.csv")
 dailyp$time <- dmy(dailyp$system.time_start)
@@ -1103,6 +1103,28 @@ for(i in 1:length(IDs)){
        main = unique(reg_colonies$Location[reg_colonies$geeID == i]))
   abline(v = rain_onset$onset[rain_onset$geeID == i], col = 2, lwd = 2, lty = 2)
 }
+
+```
+
+## monthly
+```{r}
+
+# threshold over 25mm/month
+pm <- precip %>% group_by(geeID, year = year(time)) %>% 
+  summarise(onset = time[which((mean*30*24) > 25)],
+            precip = mean[which((mean*30*24) > 25)]*30*24)
+
+pm$diff <- c(diff(pm$onset), days(0))
+pm$seq <- 1
+pm$seq[which(pm$diff > 31 | pm$diff < 28)] <- 0
+
+k <- rle(pm$seq)
+
+pm$start <- 0
+pm$start[cumsum(k$lengths)[which(k$lengths >= 2)-1]+1] <- 1
+
+
+
 
 ```
 
