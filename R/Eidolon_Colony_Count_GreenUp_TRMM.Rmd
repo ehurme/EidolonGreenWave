@@ -646,6 +646,8 @@ i = 14
 rs_max <- rs %>% group_by(year, geeID) %>% 
   summarise(EVI_spline = EVI_spline[which.max(max_EVI)],
             IRG_spline = IRG_spline[which.max(max_IRG)],
+            EVI_model = EVI_model[which.max(amp)],
+            IRG_model = IRG_model[which.max(amp)],
             precip_spline = precip_spline[1],
             precip_pspline = precip_pspline[1],
             # aet_spline = aet_spline[which.max(max_aet)],
@@ -683,8 +685,6 @@ for(i in 1:length(IDs)){
 }
 
 unique(paste0(Peaks$Country, ", ", Peaks$Location))
-
-
 
 ```
 # summarize sd and mean date of phenology and peak count
@@ -1104,6 +1104,12 @@ for(i in 1:length(IDs)){
   abline(v = rain_onset$onset[rain_onset$geeID == i], col = 2, lwd = 2, lty = 2)
 }
 
+rain_onset_sum <- rain_onset %>% group_by(geeID, year) %>% 
+  summarise(onset = onset[1],
+    month = month(round_date(onset[1], unit = "month")))
+rain_onset_sum %>% group_by(geeID) %>% 
+  summarise(avg_month = round(circ.mean.month(na.omit(month)),1), 
+            count = length(na.omit(month)))
 ```
 
 ## monthly
@@ -1111,8 +1117,8 @@ for(i in 1:length(IDs)){
 
 # threshold over 25mm/month
 pm <- precip %>% group_by(geeID, year = year(time)) %>% 
-  summarise(onset = time[which((mean*30*24) > 25)],
-            precip = mean[which((mean*30*24) > 25)]*30*24)
+  summarise(onset = time[which((mean*30*24) > 45)],
+            precip = mean[which((mean*30*24) > 45)]*30*24)
 
 pm$diff <- c(diff(pm$onset), days(0))
 pm$seq <- 1
@@ -1123,8 +1129,25 @@ k <- rle(pm$seq)
 pm$start <- 0
 pm$start[cumsum(k$lengths)[which(k$lengths >= 2)-1]+1] <- 1
 
+pm$start[1] <- 1
 
+onset <- pm[pm$start == 1,]
 
+table(onset$geeID, onset$year)
+table(precip$geeID, year(precip$time))
+i = 15
+j = 2
+for(i in 15:17){
+  o <- onset[onset$geeID == i,]
+  years <- 2000:2020
+  # for(j in 1:length(years)){
+    # oy <- o[o$year == years[j],]
+    py <- precip[which(precip$geeID == i),]
+    py <- py[!is.na(py$mean),]
+    plot(py$time, py$mean*30*24, type = "o", main = i)
+    abline(v = o$onset)
+  # }
+}
 
 ```
 
