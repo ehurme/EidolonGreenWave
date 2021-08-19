@@ -878,8 +878,8 @@ Peaks$precip_pspline <- ymd("1900-01-01")
 # Peaks$IRG1_model <- ymd("1900-01-01")
 # Peaks$EVI2_model <- ymd("1900-01-01")
 # Peaks$IRG2_model <- ymd("1900-01-01")
-# Peaks$EVI_model <- ymd("1900-01-01")
-# Peaks$IRG_model <- ymd("1900-01-01")
+Peaks$EVI_model <- ymd("1900-01-01")
+Peaks$IRG_model <- ymd("1900-01-01")
 # Peaks$LOS_start <- ymd("1900-01-01")
 # Peaks$LOS_end <- ymd("1900-01-01")
 # Peaks$LOS <- NA
@@ -975,12 +975,12 @@ for(i in 1:length(IDs)){
     #   unit = "month")
     
     # modis model
-    # Peaks$EVI_model[pidx[j]] <- round_date(
-    #   ymd(r_half$EVI_model[which.min(abs(p$month[j] - as.Date(r_half$EVI_model)))]), 
-    #   unit = "month")
-    # Peaks$IRG_model[pidx[j]] <- round_date(
-    #   ymd(r_half$IRG_model[which.min(abs(p$month[j] - as.Date(r_half$IRG_model)))]), 
-    #   unit = "month")
+    Peaks$EVI_model[pidx[j]] <- round_date(
+      ymd(r_half$EVI_model[which.min(abs(p$month[j] - as.Date(r_half$EVI_model)))]),
+      unit = "month")
+    Peaks$IRG_model[pidx[j]] <- round_date(
+      ymd(r_half$IRG_model[which.min(abs(p$month[j] - as.Date(r_half$IRG_model)))]),
+      unit = "month")
     # Peaks$EVI1_model[pidx[j]] <- round_date(
     #   ymd(r_half$EVI1_model[which.min(abs(p$month[j] - as.Date(r_half$EVI1_model)))]), 
     #   unit = "month")
@@ -1015,12 +1015,12 @@ Peaks$months_to_precip_pspline <- round(difftime(Peaks$month,
 # Peaks$months_to_aet_spline <- round(difftime(Peaks$month, 
 #                                                 Peaks$aet_spline, 
 #                                                 unit = "weeks")/4,0) %>% as.numeric
-# Peaks$months_to_EVI_model <- round(difftime(Peaks$month, 
-#                                             Peaks$EVI_model, 
-#                                             unit = "weeks")/4,0) %>% as.numeric
-# Peaks$months_to_IRG_model <- round(difftime(Peaks$month, 
-#                                             Peaks$IRG_model, 
-#                                             unit = "weeks")/4,0) %>% as.numeric
+Peaks$months_to_EVI_model <- round(difftime(Peaks$month,
+                                            Peaks$EVI_model,
+                                            unit = "weeks")/4,0) %>% as.numeric
+Peaks$months_to_IRG_model <- round(difftime(Peaks$month,
+                                            Peaks$IRG_model,
+                                            unit = "weeks")/4,0) %>% as.numeric
 # Peaks$months_to_EVI1_model <- round(difftime(Peaks$month, 
 #                                              Peaks$EVI1_model, 
 #                                              unit = "weeks")/4,0) %>% as.numeric
@@ -1039,7 +1039,7 @@ Peaks$months_to_precip_pspline <- round(difftime(Peaks$month,
 wilcox.test(Peaks$months_to_precip_spline, Peaks$months_to_IRG_spline)
 summary(Peaks)
 
-save(avg_peaks, Peaks, Strict_Peaks, reg_colonies, Africa, EVI, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
+save(avg_peaks, Peaks, Strict_Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
 load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
 ```
 
@@ -1252,6 +1252,28 @@ p4 <- ggplot(Peaks, aes(y = yday(month), x = yday(precip_pspline), col = abs(Lat
 ggarrange(p1,p2,p3,p4, ncol = 2, nrow = 2, common.legend = TRUE)
 
 ```
+## circular correlation
+### compare methods
+#### Spline vs model
+
+```{r}
+round(cor.circular(y = pi*month(Peaks$month)/12, 
+                   x = pi*month(Peaks$EVI_model)/12), 2)
+round(cor.circular(y = pi*month(Peaks$month)/12, 
+                   x = pi*month(Peaks$EVI_spline)/12), 2)
+round(cor.circular(y = pi*month(Peaks$month)/12, 
+                   x = pi*month(Peaks$IRG_model)/12), 2)
+round(cor.circular(y = pi*month(Peaks$month)/12, 
+                   x = pi*month(Peaks$IRG_spline)/12), 2)
+
+round(cor.circular(y = pi*month(Peaks$month)/12, 
+                   x = pi*month(Peaks$precip_spline)/12), 2)
+round(cor.circular(y = pi*month(Peaks$month)/12, 
+                   x = pi*month(Peaks$precip_pspline)/12), 2)
+
+```
+
+
 
 ```{r}
 library(ggpmisc)
