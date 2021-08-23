@@ -779,6 +779,7 @@ Peaks$months_to_precip_pspline <- round(difftime(Peaks$month,
                                                 Peaks$precip_pspline, 
                                                 unit = "weeks")/4,0) %>% as.numeric
 
+wilcox.test(Peaks$months_to_EVI_spline, Peaks$months_to_IRG_spline)
 wilcox.test(Peaks$months_to_precip_spline, Peaks$months_to_IRG_spline)
 wilcox.test(Peaks$months_to_precip_pspline, Peaks$months_to_IRG_spline)
 summary(Peaks)
