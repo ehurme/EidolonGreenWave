@@ -1,9 +1,13 @@
-# compare CHIRPS and TRMM
+# compare environmental data sets
+
+# load libraries
 library(tidyverse)
 library(lubridate)
 library(circular)
+# load circular stats functions
 source("./src/IRG_functions.R")
 
+# CHIRPS and TRMM
 load("./../../../Dropbox/MPI/Eidolon/Greenwave/rdata/rs_max_sum_TRMM.Rdata")
 rs_TRMM <- rs
 rs_max_TRMM <- rs_max
@@ -123,7 +127,8 @@ d_max %>% round(2)
 
 ### HR
 
-
+# Compare EVI and IRG from different data sets
+## Spline vs Modeled
 
 ## EVI
 

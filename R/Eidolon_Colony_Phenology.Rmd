@@ -213,6 +213,8 @@ fig1 <-
   viridis::scale_color_viridis(name = "Month", option = "D")
 fig1
 ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
+ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1.eps",
+       device = "eps")
 save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
 ```
 
@@ -1054,6 +1056,10 @@ f3 <- ggarrange(p+theme(text = element_text(size = 15)),
 f3
 ggsave(f3,
 filename = "../../../../Dropbox/MPI/Eidolon/GreenWave/plots/fig3_TRMM.png", width = 11, height = 5)
+ggsave(f3,
+  filename = "../../../../Dropbox/MPI/Eidolon/GreenWave/plots/fig3.eps", 
+  width = 11, height = 5, device = 
+  "eps")
 ```
 
 
@@ -1203,13 +1209,13 @@ p
 control = lmerControl(check.conv.grad = "ignore"),
 cov.prior = gamma))
 
-(b1 <- blmer(abs(months_to_IRG_spline)~
+b1 <- blmer(abs(months_to_IRG_spline)~
              scale(max_EVI)+
              scale(entropy)+
              scale(log_colony_size)+
              (1|geeID), Peaks,
-control = lmerControl(check.conv.grad = "ignore"),
-cov.prior = gamma))
+  control = lmerControl(check.conv.grad = "ignore"),
+  cov.prior = gamma)
 b1 %>% summary
 b1 %>% confint()
 
@@ -1272,12 +1278,19 @@ ps2 <- ggplot(Peaks, aes(abs(months_to_IRG_spline), predictIRG, col = Location))
   #               parse = TRUE)
 
 ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2.png")
+ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2.eps", device = "eps")
 r.sq_df <- sapply(r.sq, unlist)
 
+locations <- as.factor(unique(Peaks$Location))
+```
 
-plot(r.sq_df[2,], ylab = "R^2", xlab = "Dropped Colony Index",
-     main = "Leave one Colony Out Model Performance")
+
+```{r}
+par(mar = c(7,4,1,1))
+plot(locations, r.sq_df[2,], ylab = "R^2", xlab = "", xaxt="n",
+     main = "", type = "p", cex = 1)
 abline(h = mean(r.sq_df[2,]))
+axis(side = 1, at = 1:17, labels = locations, las = 2)
 ```
 
 
@@ -1328,7 +1341,7 @@ plot_model(b1, colors = "black")+theme_bw()
 ```{r}
 IDs <- 1:17
 fits <- list()
-r.sq <- list()
+r.sqs <- list()
 
 Peaks$predictIRG <- NA
 i = 1
@@ -1344,7 +1357,7 @@ for(i in 1:length(IDs)){
   control = lmerControl(check.conv.grad = "ignore"),
   cov.prior = gamma)
   summary(fits[[i]])
-  r.sq[[i]] <-  r.squaredGLMM(fits[[i]])
+  r.sqs[[i]] <-  r.squaredGLMM(fits[[i]])
   
   df_out <- Peaks[Peaks$geeID == IDs[i],]
   Peaks$predictIRG[which(Peaks$geeID == IDs[i])] <- 
@@ -1362,11 +1375,20 @@ ps2 <- ggplot(Peaks, aes(abs(months_to_IRG_spline), predictIRG, col = Location))
   #               aes(label = paste(..rr.label.., sep = "~~~")), 
   #               parse = TRUE)
 
-ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2_strict.png")
-r.sq_df <- sapply(r.sq, unlist)
+# ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2_strict.png")
+r.sq_dfs <- sapply(r.sqs, unlist)
 
 
-plot(r.sq_df[2,], ylab = "R^2", xlab = "Dropped Colony Index",
-     main = "Leave one Colony Out Model Performance")
-abline(h = mean(r.sq_df[2,]))
+# plot(r.sq_df[2,], ylab = "R^2", xlab = "Dropped Colony Index",
+#      main = "Leave one Colony Out Model Performance")
+# abline(h = mean(r.sq_df[2,]))
 ```
+
+```{r}
+par(mar = c(7,4,1,1))
+plot(locations, r.sq_dfs[2,], ylab = "R^2", xlab = "", xaxt="n",
+     main = "", type = "p", cex = 1)
+abline(h = mean(r.sq_dfs[2,]))
+axis(side = 1, at = 1:17, labels = locations, las = 2)
+```
+

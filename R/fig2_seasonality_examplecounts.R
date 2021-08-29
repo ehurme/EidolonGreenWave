@@ -239,6 +239,7 @@ ggarrange(fig[[1]], fig[[4]], ncol = 1)
 
 avg_peaks
 
+load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/gg_examples.Rdata")
 
 fig2 <- ggarrange(ggarrange(fig[[1]], fig[[2]], ncol = 1, labels = c("A", "B")), 
          ggarrange(ggarrange(gg_peaks, gg_entropy, align = "h"), 
@@ -248,3 +249,6 @@ fig2 <- ggarrange(ggarrange(fig[[1]], fig[[2]], ncol = 1, labels = c("A", "B")),
          widths = c(c(0.3,0.4,0.3)))
 fig2
 ggsave(fig2, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig2_TRMM.png", width = 20, height = 11)
+ggsave(fig2, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig2_TRMM.eps",
+       device = "eps",
+       width = 20, height = 11)
