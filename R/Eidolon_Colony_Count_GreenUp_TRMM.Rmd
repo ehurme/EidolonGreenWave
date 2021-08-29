@@ -1282,9 +1282,11 @@ ps2 <- ggplot(Peaks, aes(abs(months_to_IRG_spline), predictIRG, col = Location))
 ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2.png")
 r.sq_df <- sapply(r.sq, unlist)
 
-
-plot(r.sq_df[2,], ylab = "R^2", xlab = "Dropped Colony Index",
-     main = "Leave one Colony Out Model Performance")
+locations <- unique(Peaks$Location) %>% as.factor()
+par(mar = c(7,3,1,1))
+plot(locations, r.sq_df[2,], ylab = "R^2", 
+     xnt = TRUE,
+     main = "", las = 2)
 abline(h = mean(r.sq_df[2,]))
 ```
 
