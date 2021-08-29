@@ -645,6 +645,8 @@ i = 14
 rs_max <- rs %>% group_by(year, geeID) %>% 
   summarise(EVI_spline = EVI_spline[which.max(max_EVI)],
             IRG_spline = IRG_spline[which.max(max_IRG)],
+            EVI_model = EVI_model[which.max(amp)],
+            IRG_model = IRG_model[which.max(amp)],
             precip_spline = precip_spline[1],
             precip_pspline = precip_pspline[1],
             # aet_spline = aet_spline[which.max(max_aet)],

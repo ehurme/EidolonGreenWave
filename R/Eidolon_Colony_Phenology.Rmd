@@ -606,6 +606,8 @@ i = 14
 rs_max <- rs %>% group_by(year, geeID) %>% 
   summarise(EVI_spline = EVI_spline[which.max(max_EVI)],
             IRG_spline = IRG_spline[which.max(max_IRG)],
+            EVI_model = EVI_model[which.max(amp)],
+            IRG_model = IRG_model[which.max(amp)],
             precip_spline = precip_spline[1],
             precip_pspline = precip_pspline[1],
             # aet_spline = aet_spline[which.max(max_aet)],
@@ -848,6 +850,12 @@ for(i in 1:length(IDs)){
   abline(v = rain_onset$onset[rain_onset$geeID == i], col = 2, lwd = 2, lty = 2)
 }
 
+rain_onset_sum <- rain_onset %>% group_by(geeID, year) %>% 
+  summarise(onset = onset[1],
+    month = month(round_date(onset[1], unit = "month")))
+rain_onset_sum %>% group_by(geeID) %>% 
+  summarise(avg_month = round(circ.mean.month(na.omit(month)),1), 
+            count = length(na.omit(month)))
 ```
 ### correlation with 
 #### peak colony size
@@ -1281,6 +1289,7 @@ ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2.pn
 ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2.eps", device = "eps")
 r.sq_df <- sapply(r.sq, unlist)
 
+<<<<<<< HEAD:R/Eidolon_Colony_Phenology.Rmd
 locations <- as.factor(unique(Peaks$Location))
 ```
 
@@ -1289,6 +1298,13 @@ locations <- as.factor(unique(Peaks$Location))
 par(mar = c(7,4,1,1))
 plot(locations, r.sq_df[2,], ylab = "R^2", xlab = "", xaxt="n",
      main = "", type = "p", cex = 1)
+=======
+locations <- unique(Peaks$Location) %>% as.factor()
+par(mar = c(7,3,1,1))
+plot(locations, r.sq_df[2,], ylab = "R^2", 
+     xnt = TRUE,
+     main = "", las = 2)
+>>>>>>> bd377498ccb87410b5b00528d073ce37412c4254:R/Eidolon_Colony_Count_GreenUp_TRMM.Rmd
 abline(h = mean(r.sq_df[2,]))
 axis(side = 1, at = 1:17, labels = locations, las = 2)
 ```

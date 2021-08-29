@@ -245,10 +245,19 @@ fig2 <- ggarrange(ggarrange(fig[[1]], fig[[2]], ncol = 1, labels = c("A", "B")),
          ggarrange(ggarrange(gg_peaks, gg_entropy, align = "h"), 
                    p_map, ncol = 1, 
                    heights = c(0.3, 0.7), widths = c(1,1)),
-         ggarrange(fig[[4]], fig[[3]], ncol = 1, labels = c("C", "D")), nrow = 1, #labels = c("A","","C","B","B","D"),
+         ggarrange(fig[[4]], fig[[3]], ncol = 1, labels = c("C", "D")), nrow = 1, 
+         #labels = c("A","","C","B","B","D"),
          widths = c(c(0.3,0.4,0.3)))
 fig2
+<<<<<<< HEAD:R/fig2_seasonality_examplecounts.R
 ggsave(fig2, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig2_TRMM.png", width = 20, height = 11)
 ggsave(fig2, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig2_TRMM.eps",
        device = "eps",
        width = 20, height = 11)
+=======
+ggsave(fig2, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig2_TRMM.png", 
+       width = 20, height = 11)
+ggsave(fig2, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig2.eps", 
+       width = 20, height = 11, device = "eps")
+
+>>>>>>> bd377498ccb87410b5b00528d073ce37412c4254:R/fig_seasonality_raster2.R
