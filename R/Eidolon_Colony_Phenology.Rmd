@@ -14,28 +14,17 @@ Green up date is estimated by the MCD12Q2.006 Land Cover Dynamics Yearly Global 
 # load libraries
 ```{r setup, echo=FALSE}
 
-# library(groundhog)
-# groundhog.day = "2021-05-01"
-pkgs <- c('ggplot2', 'dplyr', 'plyr', 'reshape2',
-          'tidyverse', 'scales',
-          'magrittr', 'data.table',
-          'viridisLite','ggpubr','ggpmisc',
-       'rnaturalearth', 'rnaturalearthdata', # maps
-          'zoo', 'circular', 'CircMLE', 'lubridate', # toolkit
-          # models
-          'mgcv', 'lme4', 'MuMIn', 'blme',
-          # model evaluation
-          'performance', 'DHARMa', 'sjPlot')
-# groundhog.library(pkgs, groundhog.day, quiet.install = TRUE)
 library(pacman)
-p_load('ggplot2', 'dplyr', 'plyr', 'reshape2',
+p_load(# toolkit
+          'ggplot2', 'plyr', 'reshape2',
           'tidyverse', 'scales',
-          'magrittr', 'data.table',
+          'magrittr', 'data.table', 'dplyr',
           'viridisLite','ggpubr','ggpmisc',
-       'rnaturalearth', 'rnaturalearthdata', # maps
-          'zoo', 'circular', 'CircMLE', 'lubridate', # toolkit
+          'zoo', 'circular', 'CircMLE', 'lubridate',
+          # maps
+          'rnaturalearth', 'rnaturalearthdata',    
           # models
-          'mgcv', 'lme4', 'MuMIn', 'blme',
+          'lme4', 'MuMIn', 'blme',
           # model evaluation
           'performance', 'DHARMa', 'sjPlot')
 
@@ -43,29 +32,21 @@ source("../src/IRG_functions.R")
 ```
 # load counts
 ```{r}
-load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/colony_count.RData")
+colonies <- read.csv("../../../../Dropbox/MPI/Eidolon/Greenwave/data/colonies.csv")
+colonies$date <- ymd(colonies$date)
+colonies %>% summary
 ```
 
 ## summarize
 ```{r}
-colonies$Count[colonies$Location == "Kasanka"] %>% summary
-
 count_sum <- colonies %>% group_by(Country, Location) %>% 
-  summarise(start = min(date), end = max(date), 
+  dplyr::summarise(start = min(date), end = max(date), 
             duration = round((max(date)-min(date))/365,1),
             interval = median(diff(date)),
     min_max = paste0(round(min(Count, na.rm = TRUE), digits = -2), "-", 
                              round(max(Count, na.rm = TRUE), -2)))
-write.csv(count_sum)
 ```
 
-Acknowledgements
-```{r}
-# ack <- unique(paste0(colonies$Country, ": ", colonies$Observer))
-# ack[order(ack)]
-# 
-# write.csv(ack, file = )
-```
 
 # load GEE data
 ```{r load GEE data}
@@ -126,43 +107,6 @@ for(i in 1:nrow(MEVI)){
 EVI$time <- ymd_hms(EVI$startDate)
 ```
 
-# add IRG to EVI
-```{r}
-IDs <- 1:17
-EVI$IRG <- NA
-EVI$Lat <- NA
-for(i in 1:length(IDs)){
-  idx <- which(EVI$geeID == i)
-  e <- EVI[idx,]
-  time <- e$time
-  evi <- e$mean
-  
-  spl <- smooth.spline(x = time, y = evi)
-  pred <- predict(spl)
-  e$pred <- pred$y
-  # get derivative of EVI -> IRG
-  pred.prime <- predict(spl, deriv=1)
-  plot(pred.prime, type = "l")
-  # pred.prime$y_scale <- rescale(pred.prime$y, c(0,1))
-  # plot(pred.prime$x, pred.prime$y_scale, type = "l")
-  EVI$IRG[idx] <- pred.prime$y
-  
-  EVI$Lat[idx] <- colonies$Lat[which(colonies$geeID == i)[1]]
-}
-```
-
-# ggplot
-```{r}
-ggplot(EVI, aes(x = month(time)))+
-  geom_smooth(col = 3, aes(y = mean/max(mean), se = FALSE, group = geeID))+
-  geom_smooth(aes(y = IRG/max(IRG), group = geeID), se = FALSE, col = 2)+
-  geom_smooth(data = reg_colonies, se = FALSE, 
-              aes(x = month(month), y = ratio, group = geeID), col = 1)+
-  # coord_cartesian(xlim=c(0,12))+
-  xlab("ratio")+ylab("month")+theme_classic()+
-  facet_wrap(~round(Lat,2), ncol = 6)
-
-```
 
 ## Plot colonies on map
 ```{r , echo=FALSE}
@@ -171,8 +115,8 @@ class(Africa)
 
 colonies$year <- year(colonies$date)
 
-batdf_max <- colonies %>% group_by(Country, Location, year) %>% 
-  summarise(size = max(ratio, na.rm = TRUE), 
+batdf_max <- colonies %>% group_by(Country, Location, year) %>%
+  dplyr::summarise(size = max(ratio, na.rm = TRUE), 
             count = Count[which.max(ratio)],
             Lat = Lat[which.max(ratio)],
             Long = Long[which.max(ratio)],
@@ -181,7 +125,7 @@ batdf_max$yday <- yday(batdf_max$date)
 batdf_max$month <- month(round_date(batdf_max$date, unit = "month"))
 
 batdf_max_mean <- batdf_max %>% group_by(Country, Location) %>% 
-  summarise(size = mean(size),
+  dplyr::summarise(size = mean(size),
             peak_size = mean(count),
             Lat = Lat[1],
             Long = Long[1],
@@ -212,10 +156,10 @@ fig1 <-
   guides(size = guide_legend(nrow = 2, title = "Avg Peak Size"))+
   viridis::scale_color_viridis(name = "Month", option = "D")
 fig1
-ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
-ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1.eps",
-       device = "eps")
-save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
+# ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
+# ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1.eps",
+#        device = "eps")
+# save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
 ```
 
 # calculate entropy
@@ -228,12 +172,15 @@ EVI$EVIannualsum <- NA
 EVI$year <- year(EVI$time)
 EVI$month <- month(EVI$time)
 EVI_monthly <- EVI %>% group_by(geeID, year, month) %>% 
-  summarise(EVI = mean(mean, na.rm = TRUE))
+  dplyr::summarise(EVI = mean(mean, na.rm = TRUE))
 
+IDs <- 1:length(unique(colonies$Location))
+i = 1
 for(i in 1:length(IDs)){
   em <- EVI_monthly[EVI_monthly$geeID == IDs[i],]
   # monthly mean
-  Rm <- em %>% group_by(month, year) %>% summarise(EVI = mean(EVI, na.rm = TRUE))
+  Rm <- em %>% group_by(month, year) %>% 
+    dplyr::summarise(EVI = mean(EVI, na.rm = TRUE))
   years <- unique(em$year)
   for(j in 1:length(years)){
     R <- mean(Rm$EVI[Rm$year == years[j]], na.rm = TRUE)
@@ -265,6 +212,7 @@ for(i in 1:length(IDs)){
     EVI$EVIannualsum[idx] <- Ra
   }
 }
+summary(EVI)
 
 psych::pairs.panels(EVI[,c("entropy", "seasonality", "maxEVImonth", "EVIannualsum")])
 ```
@@ -279,9 +227,6 @@ for(i in 1:length(IDs)){
   
   e <- subset(EVI, EVI$geeID == ID)
   p <- subset(precip, precip$geeID == ID)
-    # precip[,c(1,ID+1)]
-  # t <- evap[evap$geeID == ID,]
-  # names(p) <- c("time", "precip")
   p$precip <- p$mean
   p$time <- ymd_hms(paste0(p$time, " 12:00:00"))
   
@@ -304,56 +249,30 @@ for(i in 1:length(IDs)){
   with(colony, points(time, ratio, type = "o"))
   mevi1 <- MEVI[MEVI$geeID == ID & MEVI$peak == 1,]
   mevi2 <- MEVI[MEVI$geeID == ID & MEVI$peak == 2,]
-  # abline(v = ymd_hms(paste0(mevi1$date_EVI," 12:00:00")), col = "orange",
-  #        lwd = (4*mevi1$amp)/max(c(mevi1$amp, mevi2$amp)))
-  # abline(v = ymd_hms(paste0(mevi2$date_EVI," 12:00:00")), col = "brown",
-  #        lwd = (4*mevi2$amp)/max(c(mevi1$amp, mevi2$amp)))
-  # # abline(v = colonies$timestamp[colonies$geeID == ID], col = 2, lwd = 2)
-  # legend("topright", legend = c("peak1", "peak2"), col = c("orange", "brown"), lty = 1)
   
   time <- as.Date(e$time)
   evi <- e$mean
-  timep <- p$time
-  
-  # ttime <- as.Date(t$time)
-  # te <- t$aet
-  
-  prp <- p$precip
-  
-  # dl <- geosphere::daylength(colony$Lat[1], seq(1,331, by = 30))
-  # dayl <- data.frame(date = seq.Date(as.Date("2000-01-01"), 
-  #                                    as.Date("2019-12-01"), 
-  #                                    by = "month"), 
-  #                    daylength = rep(dl, 20))
-  # dayl$geeID <- ID
-  # dayl$year <- year(dayl$date)
-  # lines(dayl$date, rescale(dayl$daylength), 
-  #       col = "gold", lwd = 2)
-  
   spl <- smooth.spline(x = time, y = evi)
-  # spl_t <- smooth.spline(x = ttime, y = te/max(te))
-  spl_p <- smooth.spline(x = timep, y = prp) # spar = 0.2)
-  # plot(spl_p, type = "l")
   pred <- predict(spl)
-  # predt <- predict(spl_t)
+  
+  timep <- p$time
+  prp <- p$precip
+  spl_p <- smooth.spline(x = timep, y = prp) 
   predp <- predict(spl_p)
+  
   e$pred <- pred$y
-  # t$pred <- predt$y
   p$pred <- predp$y
   lines(pred, col=2)
-  # lines(predt, col = 4)
   lines(as.Date(p$time), p$pred/max(p$pred), col = "blue")
   
   ## get derivative of EVI -> IRG
-  # pred.prime <- predict(spl, deriv=1)
-  # pred.prime$y_scale <- rescale(pred.prime$y, c(0,1))
-  # e$pred.prime <- pred.prime$y_scale
-  
+  pred.prime <- predict(spl, deriv=1)
+  pred.prime$y_scale <- rescale(pred.prime$y, new.max = 1, new.min = -1)
+  e$IRG <- pred.prime$y_scale
+
   # # get derivative of precipitation
   predp.prime <- predict(spl_p, deriv=1)
-  # plot(predp.prime, type = "l")
   predp.prime$y_scale <- rescale(predp.prime$y, new.min = -1)
-  # plot(predp.prime$y_scale, type = "l")
   p$pred.prime <- predp.prime$y_scale
   
   # plot first derivatives
@@ -361,96 +280,65 @@ for(i in 1:length(IDs)){
        xlim = c((min(colony$time)-years(1)), (max(colony$time)+years(1))),
        ylim = c(-1, 1), xlab = "Date")
   lines(as.Date(p$time), p$pred.prime, col = 4)
-  # lines(dayl$date, rescale(dayl$daylength), 
-  #       col = "gold", lwd = 2)
-
+  
   with(colony, points(time, ratio, type = "o"))
-  # abline(v = ymd_hms(paste0(mevi1$date_IRG," 12:00:00")), col = "orange",
-  #        lwd = (4*mevi1$amp)/max(c(mevi1$amp, mevi2$amp)))
-  # abline(v = ymd_hms(paste0(mevi2$date_IRG," 12:00:00")), col = "brown",
-  #        lwd = (4*mevi2$amp)/max(c(mevi1$amp, mevi2$amp)))
-  # 
+  
   ## add EVI, IRG, and Precip to reg colonies
   for(j in 1:length(c_idx)){
     colonies$evi[c_idx[j]] <- evi[which.min(abs(as.Date(colony$time[j]) - 
                                                       as.Date(time)))]
     colonies$irg[c_idx[j]] <- e$IRG[which.min(abs(as.Date(colony$time[j]) -
                                                                      as.Date(time)))]
-    # colonies$grd[c_idx[j]] <- e$GRD[which.min(abs(as.Date(colony$time[j]) -
-    #                                                                  as.Date(time)))]
     colonies$precip[c_idx[j]] <- p$precip[which.min(abs(as.Date(colony$time[j]) - 
                                                       as.Date(timep)))]
     colonies$precip_p[c_idx[j]] <- p$pred.prime[which.min(abs(as.Date(colony$time[j]) - 
                                                       as.Date(timep)))]
-    # colonies$aet[c_idx[j]] <- t$aet[which.min(abs(as.Date(colony$time[j]) - as.Date(ttime)))]
   }
-  
-  # ggplot() +
-  #   geom_line(data = e, aes(x = ymd_hms(startDate), y = pred.prime), col = 2) +
-  #   geom_point(data = colony, aes(x = time, y = ratio)) + ylab("IRG") + xlab("Date")+
-  #   geom_segment(data = colony, aes(x = time, xend = time, y = 0, yend = ratio)) +
-  #   xlim(c(min(colony$time)-years(1), max(colony$time)+years(1))) + 
-  #   theme_bw()
   
   years <- unique(year(e$time))
   e$year <- year(e$time)
   # to account for double peaks in a season, we will  pull out half year estimates
   e$halfyear <- year(e$time)+round(month(e$time)/12, 0)/2
   e_sum <- e %>% group_by(halfyear, year, geeID) %>% 
-    summarise(EVI_spline = time[which.max(pred)],
+    dplyr::summarise(EVI_spline = time[which.max(pred)],
               IRG_spline = time[which.max(IRG)],
               EOS_spline = time[which.min(IRG)],
               max_IRG = IRG[which.max(IRG)],
               min_IRG = IRG[which.min(IRG)],
               max_EVI = pred[which.max(pred)],
               min_EVI = pred[which.min(pred)],
-              # area_EVI = trapz(as.numeric(time),pred),
               entropy = mean(entropy, na.rm = TRUE),
               seasonality = mean(seasonality, na.rm = TRUE))
-  # t$year <- year(t$time)
-  # t_sum <- t %>% group_by(year, geeID) %>% 
-  #   summarise(aet_spline = time[which.max(pred)], 
-  #             max_aet = aet[which.max(aet)],
-  #             min_aet = aet[which.min(aet)])
+  
   summary(p)
   p$year <- year(p$time)
   p$geeID <- ID
   p_sum <- p %>% group_by(year, geeID) %>% 
-    summarise(precip_spline = time[which.max(precip)],
+    dplyr::summarise(precip_spline = time[which.max(precip)],
               precip_pspline = time[which.max(pred.prime)])
 
   MEVI$year <- year(MEVI$date_EVI)
   m_sum1 <- MEVI[MEVI$geeID == ID,] %>% group_by(geeID, year) %>% 
-    summarise(EVI1_model = date_EVI[which(peak == 1)],
+    dplyr::summarise(EVI1_model = date_EVI[which(peak == 1)],
               EVI_model = date_EVI[which.max(amp)],
               IRG1_model = date_IRG[which(peak == 1)],
               IRG_model = date_IRG[which.max(amp)],
               amp = amp[which.max(amp)])
   
   m_sum2 <- MEVI[MEVI$geeID == ID,] %>% group_by(geeID, year) %>% 
-    summarise(EVI2_model = date_EVI[which(peak == 2)],
+    dplyr::summarise(EVI2_model = date_EVI[which(peak == 2)],
               IRG2_model = date_IRG[which(peak == 2)])
   m_sum <- full_join(m_sum1, m_sum2)
   
-  # dayl$daylength %>% plot(type = "l")
-  # dl_sum <- dayl %>% group_by(geeID, year) %>%
-  #   summarise(daylength_month = date[which.max(daylength)],
-  #             daylength = daylength[which.max(daylength)])
-
-  # plot(dayl$daylength)
   C <- full_join(e_sum, m_sum)
-  # C <- full_join(C, t_sum)
-  # C <- full_join(C, dl_sum)
   C <- full_join(C, p_sum)
   rs <- rbind(rs, C)
 }
 summary(rs)
 save(colonies, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/regular_colonies_TRMM.Rdata")
 load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/regular_colonies_TRMM.Rdata")
-# (rs$daylength) %>% plot
+
 ```  
-
-
 
 # Check peak colony month
 ## find colony peaks
@@ -570,7 +458,6 @@ for(i in 1:length(IDs)){
           peaks <- peaks[-(too_close+(kick-1)),]
         }
       }
-        
     }
     # update too_close
     too_close <- which(diff(peaks$date) < 300)[1]
@@ -590,7 +477,7 @@ Strict_Peaks$month <- round_date(Strict_Peaks$date, unit = "month")
 ### summarize count concentration
 ```{r}
 peak_circ <- Peaks %>% group_by(Country, Location) %>% 
-  summarise(m = round(circ.mean.month(month(round_date(date, unit = "months"))),1),
+  dplyr::summarise(m = round(circ.mean.month(month(round_date(date, unit = "months"))),1),
             sd = round(as.numeric(mean.circular(x = sd.circular(month(round_date(date, unit = "months"))*360/12, type = "angles", units = "degrees", modulo = "2pi")))*12/(360),1),
     r = round(circ.intensity.month(month(round_date(date, unit = "months"))),1),
     HR = HR_test(data = circular(month(round_date(date, unit = "months"))*2*pi/12, 
@@ -602,52 +489,38 @@ peak_circ <- Peaks %>% group_by(Country, Location) %>%
 
 # plot colony and RS peaks 
 ```{r}
-i = 14
 rs_max <- rs %>% group_by(year, geeID) %>% 
-  summarise(EVI_spline = EVI_spline[which.max(max_EVI)],
+  dplyr::summarise(EVI_spline = EVI_spline[which.max(max_EVI)],
             IRG_spline = IRG_spline[which.max(max_IRG)],
             EVI_model = EVI_model[which.max(amp)],
             IRG_model = IRG_model[which.max(amp)],
             precip_spline = precip_spline[1],
             precip_pspline = precip_pspline[1],
-            # aet_spline = aet_spline[which.max(max_aet)],
             entropy = entropy[1],
             max_EVI = max_EVI[which.max(max_EVI)]) # ,
-            # daylength_month = rs$daylength_month[1])
-i = 14
+            
 for(i in 1:length(IDs)){
   p <- Peaks[which(Peaks$geeID == IDs[i]),]
   r <- rs_max[which(rs_max$geeID == IDs[i]),]
-  # layout(c(1,2))
   
   plot(r$year, month(r$IRG_spline), type = "o", pch = 16,
        ylab = "month", xlab = "", col = 2,
        ylim = c(0,12), main = paste(p$Location[1])) #, "spline"))
-  # abline(v = 2000:2020, lty = 2)
   points(r$year, month(r$EVI_spline), type ="o", pch = 16, col = 3)
   points(r$year, month(r$precip_spline), type = "o", pch = 16, col = 4)
   points(r$year, month(r$precip_pspline), type = "o", pch = 16, col = "blue")
-  # points(r$year, month(r$aet_spline), type = "o", pch = 16, col = 5)
-  # points(r$year, month(r$daylength_month), type = "o", pch = 16, col = "gold")
   points(x = year(p$month), y = month(p$month), col = 1, pch = 16, cex = 2)
   
   
   legend("bottomleft", legend = c("EVI", "IRG", "Precip", "PrpStart", 
                                   "Colony"), pch = 16, col = c(3,2,4,"blue",
                                                                1))
-  # plot(r$year, month(r$IRG_model), type = "o", pch = 16,
-  #      ylab = "month", xlab = "", col = 3,
-  #      ylim = c(0,12), main = paste(p$Location[1], "model"))
-  # points(r$year, month(r$EVI_model), type ="o", pch = 16)
-  # points(x = p$year, y = month(p$month), col = 2, pch = 16)
-  # points(x = p$year, y = month(p$month), col = 2, pch = 16)
-  
 }
 ```
 # summarize sd and mean date of phenology and peak count
 ```{r}
 rs_max_sum <- rs_max %>% group_by(geeID) %>%
-  summarise(EVI_month = round(circ.mean.month(month(round_date(EVI_spline, unit = "months"))),1),
+  dplyr::summarise(EVI_month = round(circ.mean.month(month(round_date(EVI_spline, unit = "months"))),1),
             EVI_month_circ = round(as.numeric(mean.circular(x = circular(month(round_date(EVI_spline, unit = "months"))*360/12, 
                                                       type = "angles", units = "degrees", modulo = "2pi")))*12/(360),1),
             EVI_intensity = round(circ.intensity.month(month(round_date(EVI_spline, unit = "months"))),1),
@@ -808,10 +681,10 @@ for(i in 1:length(IDs)){
   p <- dailyp[dailyp$geeID == IDs[i],]
   tenp <- p %>% group_by(year = year(time), 
                             p10 = cut(time, "10 days")) %>% 
-  summarise(p = sum(precipitation))
+  dplyr::summarise(p = sum(precipitation))
   twentyp <- p %>% group_by(year = year(time), 
                                p20 = cut(time, "20 days")) %>% 
-  summarise(p = sum(precipitation))
+  dplyr::summarise(p = sum(precipitation))
   
   years <- unique(year(p$time))
   j = 1
@@ -851,10 +724,10 @@ for(i in 1:length(IDs)){
 }
 
 rain_onset_sum <- rain_onset %>% group_by(geeID, year) %>% 
-  summarise(onset = onset[1],
+  dplyr::summarise(onset = onset[1],
     month = month(round_date(onset[1], unit = "month")))
 rain_onset_sum %>% group_by(geeID) %>% 
-  summarise(avg_month = round(circ.mean.month(na.omit(month)),1), 
+  dplyr::summarise(avg_month = round(circ.mean.month(na.omit(month)),1), 
             count = length(na.omit(month)))
 ```
 ### correlation with 
@@ -911,27 +784,21 @@ for(i in 1:nrow(Peaks)){
        xlab = "time",
        ylab = "EVI/ratio", 
        main = p$Location[1])
-         #paste0(p$Location[1], " LOS: ", p$LOS))
+        
   abline(v = seq.Date(as.Date("2000-01-01"), 
                       as.Date("2021-01-01"), by = "year"), 
          col = "gray", lty = 2)
   abline(h = 0)
   lines(c$date, c$ratio, lty = 3, col = "gray")
   lines(e$date, e$mean, col = 3)
-  # lines(pred, col = "darkgreen")
   lines(predp, col = 4)
   lines(pred.prime$x, pred.prime$y01, col = "darkred")
   lines(predp.prime$x, predp.prime$y01, col = "blue")
-  # abline(v = p$LOS_start, col = 2, lty = 2, lwd = 2)
   abline(v = p$IRG_spline, col = 2)
   abline(v = p$EVI_spline, col = 3)
   abline(v = p$precip_spline, col = 4)
   abline(v = p$precip_pspline, col = "blue")
-  # abline(v = p$LOS_end, col = "purple", lty = 2, lwd = 2)
-  # abline(v = p$EOS_spline, col = "purple")
-  # abline(v = p$aet_spline, col = "orange")
   
-  # legend("topright", legend = c("Peak Colony Size", ))
 }
 
 ```
@@ -946,12 +813,9 @@ cbPalette <- c("#009E73", "#D55E00", "#56B4E9")
 p1 <- 
   ggplot(Peaks, aes(y = month(month), 
                              x = month(EVI_spline)))+
-                             #col = abs(Lat)))+
   geom_point(col = cbPalette[1])+xlim(c(0,12))+ylim(c(0,12))+
-  # geom_smooth()+#, formula = my.formula)+
   geom_abline(slope = 1, intercept = 0)+
   ylab("Peak Colony Month")+xlab("Peak EVI Month")+
-  # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
   theme_classic() +
   scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
   scale_x_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
@@ -960,18 +824,12 @@ p1 <-
                                 round(cor.circular(
                                   y = pi*month(Peaks$month)/12, 
                                   x = pi*month(Peaks$EVI_spline)/12), 2)))
-  # stat_poly_eq(formula = my.formula, 
-  #               aes(label = paste(..rr.label.., sep = "~~~")), 
-  #               parse = TRUE)
-
+  
 p2 <- ggplot(Peaks, aes(y = month(month), 
                                  x = month(IRG_spline)))+
-                                 #col = abs(Lat)))+
   geom_point(col = cbPalette[2])+
-  #geom_smooth(method = "lm", formula = my.formula)+
   geom_abline(slope = 1, intercept = 0)+
   ylab("Peak Colony Month")+xlab("Peak IRG Month")+
-  # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
   theme_classic()+
   scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
   scale_x_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
@@ -980,18 +838,13 @@ p2 <- ggplot(Peaks, aes(y = month(month),
                            round(cor.circular(
                              y = pi*month(Peaks$month)/12, 
                              x = pi*month(Peaks$IRG_spline)/12), 2)))
-  # stat_poly_eq(formula = my.formula, 
-  #               aes(label = paste(..rr.label.., sep = "~~~")), 
-  #               parse = TRUE)
+  
 p3 <- 
   ggplot(Peaks, aes(y = month(month), 
                              x = month(precip_spline)))+
-                             # col = abs(Lat)))+
   geom_point(col = cbPalette[3])+xlim(c(0,12))+ylim(c(0,12))+
-  # geom_smooth(method = "lm", formula = my.formula)+
   geom_abline(slope = 1, intercept = 0)+
     ylab("Peak Colony Month")+xlab("Peak PRP Month")+
-  # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
     theme_classic()+
     scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
     scale_x_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
@@ -1000,19 +853,13 @@ p3 <-
                            round(cor.circular(
                              y = pi*month(Peaks$month)/12, 
                              x = pi*month(Peaks$precip_spline)/12), 2)))
-  # stat_poly_eq(formula = my.formula, 
-  #               aes(label = paste(..rr.label.., sep = "~~~")), 
-  #               parse = TRUE)
 
 p4 <- 
   ggplot(Peaks, aes(y = month(month), 
                              x = month(precip_pspline)))+
-                             # col = abs(Lat)))+
   geom_point(col = "turquoise")+xlim(c(0,12))+ylim(c(0,12))+
-  # geom_smooth(method = "lm", formula = my.formula)+
   geom_abline(slope = 1, intercept = 0)+
     ylab("Peak Colony Month")+xlab("Peak IRP Month")+
-  # scale_color_viridis_c(name='abs(Latitude)', option='C', alpha=0.7)+
     theme_classic()+
     scale_y_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
     scale_x_continuous(breaks=c(3,6,9,12), limits = c(0,12))+
@@ -1158,24 +1005,18 @@ for(i in 1:nrow(Peaks)){
   Peaks$min_IRG[i] <- max(rs$min_IRG[idx], na.rm = TRUE)
 }
 Peaks$amp_EVI <- Peaks$max_EVI - Peaks$min_EVI
-Peaks$log_colony_size <- log(Peaks$Count)
+Peaks$IRG_amp <- Peaks$max_IRG - Peaks$min_IRG
 
+psych::pairs.panels(Peaks[,c("abs_months_to_IRG_spline", "log_colony_size",
+                             "ratio", "entropy", "max_EVI", "min_EVI", "max_IRG", "min_IRG", 
+                             "IRG_amp",
+                             "amp_EVI", "amp")])
+summary(Peaks)
 ```
 
 ```{r}
 save(Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks_TRMM.RData")
 load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks_TRMM.RData")
-```
-
-```{r}
-Peaks$IRG_amp <- Peaks$max_IRG - Peaks$min_IRG
-psych::pairs.panels(Peaks[,c("abs_months_to_IRG_spline", "log_colony_size",
-                             "abs_Lat",
-                             "ratio", "entropy", "max_EVI", "min_EVI", "max_IRG", "min_IRG", 
-                             "IRG_amp",
-                             "amp_EVI", "amp")])
-summary(Peaks)
-table(Peaks$Location)
 ```
 
 ### Fig S1
@@ -1281,34 +1122,21 @@ ps2 <- ggplot(Peaks, aes(abs(months_to_IRG_spline), predictIRG, col = Location))
   geom_point()+
   geom_smooth(method = "lm", col = 1)+
   theme_classic() #+
-  # stat_poly_eq(formula = my.formula, 
-  #               aes(label = paste(..rr.label.., sep = "~~~")), 
-  #               parse = TRUE)
 
 ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2.png")
 ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2.eps", device = "eps")
 r.sq_df <- sapply(r.sq, unlist)
 
-<<<<<<< HEAD:R/Eidolon_Colony_Phenology.Rmd
-locations <- as.factor(unique(Peaks$Location))
 ```
-
-
+## Fig S3. Model fit of leave-one-colony-out cross validation. Omitted colonies are shown on the x-axis and model fit represented by R2 is on the y-axis. The average model fit across all models is presented with a horizontal line (R2 = 0.625).
 ```{r}
+locations <- unique(Peaks$Location) %>% as.factor()
 par(mar = c(7,4,1,1))
 plot(locations, r.sq_df[2,], ylab = "R^2", xlab = "", xaxt="n",
      main = "", type = "p", cex = 1)
-=======
-locations <- unique(Peaks$Location) %>% as.factor()
-par(mar = c(7,3,1,1))
-plot(locations, r.sq_df[2,], ylab = "R^2", 
-     xnt = TRUE,
-     main = "", las = 2)
->>>>>>> bd377498ccb87410b5b00528d073ce37412c4254:R/Eidolon_Colony_Count_GreenUp_TRMM.Rmd
 abline(h = mean(r.sq_df[2,]))
 axis(side = 1, at = 1:17, labels = locations, las = 2)
 ```
-
 
 ```{r}
 sPeaks <- Peaks[which(Peaks$Date %in% Strict_Peaks$Date & Peaks$ratio %in% Strict_Peaks$ratio),]
@@ -1387,17 +1215,11 @@ ps2 <- ggplot(Peaks, aes(abs(months_to_IRG_spline), predictIRG, col = Location))
   geom_point()+
   geom_smooth(method = "lm", col = 1)+
   theme_classic() #+
-  # stat_poly_eq(formula = my.formula, 
-  #               aes(label = paste(..rr.label.., sep = "~~~")), 
-  #               parse = TRUE)
+  
 
 # ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2_strict.png")
 r.sq_dfs <- sapply(r.sqs, unlist)
 
-
-# plot(r.sq_df[2,], ylab = "R^2", xlab = "Dropped Colony Index",
-#      main = "Leave one Colony Out Model Performance")
-# abline(h = mean(r.sq_df[2,]))
 ```
 
 ```{r}
@@ -1408,3 +1230,9 @@ abline(h = mean(r.sq_dfs[2,]))
 axis(side = 1, at = 1:17, labels = locations, las = 2)
 ```
 
+Acknowledgements
+```{r}
+# ack <- unique(paste0(colonies$Country, ": ", colonies$Observer))
+# ack[order(ack)]
+
+```

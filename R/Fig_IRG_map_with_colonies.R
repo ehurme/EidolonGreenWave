@@ -1,13 +1,15 @@
 ### figure 2 IRG map with colonies
 library(raster)
 library(ggplot2)
+library(rnaturalearth)
 
 load("./../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
 load("C:/Users/Edward/MODIStsp/VI_Monthly_005dg_v6/EVIAfrica.RData")
-load("../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size.RData")
+load("./../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size.RData")
 
 avg_irg
 avg_peaks
+Africa <- ne_countries(continent = "Africa", scale = "medium", returnclass = "sf")
 
 tmp<- mask(avg_irg, Africa)
 plot(tmp)
@@ -55,6 +57,7 @@ gg <- ggplot(mydf, aes(x = x, y = y, fill = value)) +
   facet_wrap(~month)
 
 gg
-ggsave(gg, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig4_avg_IRG_map.png")
+ggsave(gg, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig4_avg_IRG_map.png",
+       width = 10, height = 7)
 ggsave(gg, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig4_avg_IRG_map.eps",
-       device = "eps")
+       device = "eps", width = 10, height = 7)
