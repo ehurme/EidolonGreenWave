@@ -15,6 +15,11 @@ rs_max_sum_TRMM <- rs_max_sum
 load("./../../../Dropbox/MPI/Eidolon/Greenwave/rdata/rs_max_sum.Rdata")
 ## precip
 
+prp_avg <- data.frame(chirps_p = rs_max_sum$precip_month,
+  trmm_p = rs_max_sum_TRMM$precip_month,
+  chirps_pp = rs_max_sum$precipp_month,
+  trmm_pp = rs_max_sum_TRMM$precipp_month)
+
 ### raw
 plot(rs$precip_spline, rs_TRMM$precip_spline)
 cor(as.numeric(rs$precip_spline), as.numeric(rs_TRMM$precip_spline), use = "pairwise.complete.obs")
@@ -24,14 +29,11 @@ ggplot(p, aes(x = month(chirps), y = month(trmm), col = factor(geeID)))+geom_poi
   geom_smooth(method = "lm", alpha = 0.1)+geom_abline(slope = 1, intercept = 1)
 
 IDs <- 1:17
-# cpp <- {}
-# cppp <- {}
-d <- {} # difference from 0
+ps <- {} 
+ts <- {}
 i = 14
 for(i in 1:length(IDs)){
   pp <- p[p$geeID == IDs[i],]
-  # correlation isn't great. Points aren't in a line but clustered
-  # cpp[i] <- cor(sin(pi*month(pp$chirps)/12), sin(pi*month(pp$trmm)/12), use = "pairwise.complete.obs")
   y = as.circular(pi*month(pp$chirps)/12)
   x = as.circular(pi*month(pp$trmm)/12)
   plot(x, stack = TRUE, bins = 50)
@@ -43,28 +45,23 @@ for(i in 1:length(IDs)){
   print(table(round(na.omit(pp$chirps - pp$trmm)/(30*24*3600),0)))
   print(t.test(difftime(pp$chirps, pp$trmm, units = "weeks")/4))
   test <- t.test(difftime(pp$chirps, pp$trmm, units = "weeks")/4)
-  d[i] <- as.numeric(test$p.value)
+  ps[i] <- as.numeric(test$p.value)
+  ts[i] <- as.numeric(test$statistic)
   # # statistical test for difference in distribution?
   # watson.two.test(y = y, x = x,alpha = 0.05)
   # l <- list(x,y)
   # watson.williams.test(l)
 }
-d %>% round(digits = 2)
-# cpp %>% round(digits = 2)
-# cppp %>% round(digits = 2)
+prp_avg$p_p <- ps
+prp_avg$p_t <- ts
 
-data1 <- rvonmises(n=20, mu=circular(0), kappa=3)
-data1 %>% plot
-data2 <- rvonmises(n=20, mu=circular(pi), kappa=2)
-data2 %>% points(col=2)
-watson.two.test(data1, data2, alpha=0.05)
-watson.williams.test(list(data1, data2))
 
 ###
 rs_max
 p_max <- data.frame(chirps = rs_max$precip_spline, 
                     trmm = rs_max_TRMM$precip_spline, geeID = rs$geeID)
-d_max <- {}
+ps <- {} 
+ts <- {}
 i <- 1
 for(i in 1:length(IDs)){
   pp <- p_max[p_max$geeID == IDs[i],]
@@ -77,21 +74,12 @@ for(i in 1:length(IDs)){
   print(table(round(na.omit(pp$chirps - pp$trmm)/(30*24*3600),0)))
   
   test <- t.test(difftime(pp$chirps, pp$trmm, units = "weeks")/4)
-  print(test)
-  d_max[i] <- as.numeric(test$p.value)
+  ps[i] <- as.numeric(test$p.value)
+  ts[i] <- as.numeric(test$statistic)
 }
-hist(d_max, breaks = 17)
-d_max %>% round(2)
+prp_avg$pp_p <- ps
+prp_avg$pp_t <- ts
 
-### average month
-rs_max_sum$precip_month
-rs_max_sum_TRMM$precip_month
-
-rs_max_sum$precipp_month
-rs_max_sum_TRMM$precipp_month
-### intensity
-
-### HR
 
 
 ## IRP
@@ -133,12 +121,14 @@ d_max %>% round(2)
 
 ## EVI
 
-rs_max %>% group_by(geeID) %>%
-  summarise(EVI_month = round(circ.mean.month(month(round_date(EVI_spline, unit = "months"))),1),
+avg_phen_month <- rs_max %>% group_by(geeID) %>%
+  dplyr::summarise(EVI_month = round(circ.mean.month(month(round_date(EVI_spline, unit = "months"))),1),
             EVI_model = round(circ.mean.month(month(round_date(EVI_model, unit = "months"))),1),
             IRG_month = round(circ.mean.month(month(round_date(IRG_spline, unit = "months"))),1),
             IRG_model = round(circ.mean.month(month(round_date(IRG_model, unit = "months"))),1)) 
-d_max <- {}
+
+evi_ps <- {}
+evi_ts <- {}
 for(i in 1:length(IDs)){
   r <- rs_max[rs_max$geeID == IDs[i],]
   # correlation isn't great. Points aren't in a line but clustered
@@ -151,13 +141,14 @@ for(i in 1:length(IDs)){
   
   test <- t.test(difftime(as.Date(r$EVI_spline), r$EVI_model, units = "weeks")/4)
   # print(test)
-  d_max[i] <- as.numeric(test$p.value)
+  evi_ps[i] <- as.numeric(test$p.value)
+  evi_ts[i] <- as.numeric(test$statistic)
 }
-hist(d_max, breaks = 17)
-d_max %>% round(4)
+avg_phen_month$evi_p <- evi_ps %>% round(4)
+avg_phen_month$evi_t <- evi_ts %>% round(4)
 
-
-d_max <- {}
+ps_irg <- {}
+ts_irg <- {}
 for(i in 1:length(IDs)){
   r <- rs_max[rs_max$geeID == IDs[i],]
   # correlation isn't great. Points aren't in a line but clustered
@@ -170,8 +161,10 @@ for(i in 1:length(IDs)){
   
   test <- t.test(difftime(as.Date(r$IRG_spline), r$IRG_model, units = "weeks")/4)
   # print(test)
-  d_max[i] <- as.numeric(test$p.value)
+  ps_irg[i] <- as.numeric(test$p.value)
+  ts_irg[i] <- as.numeric(test$statistic)
 }
-hist(d_max, breaks = 17)
-d_max %>% round(4)
+avg_phen_month$irg_p <- ps_irg %>% round(4)
+avg_phen_month$irg_t <- ts_irg %>% round(4)
 
+write.csv(avg_phen_month, file = "./../../../Dropbox/MPI/Eidolon/GreenWave/data/avg_phen_month.csv")

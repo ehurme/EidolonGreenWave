@@ -1,15 +1,16 @@
 ---
 title: "Eidolon Colony Count Green Up"
-author: "Edward hurme"
-date: "10/26/2020"
+author: "Edward Hurme et al."
+date: "01/09/2021"
 output: html_document
 editor_options: 
   chunk_output_type: inline
 ---
 
-Here I am investigating the relationship between relative colony size and instantaneous rate of green up.
+Code for "Fruit bat migration matches green wave in seasonal landscapes".
 
-Green up date is estimated by the MCD12Q2.006 Land Cover Dynamics Yearly Global Model at 500m resolution
+Here we investigate the relationship between peak straw-colored fruit bat colony size and vegetation and precipitation phenologies.
+
 
 # load libraries
 ```{r setup, echo=FALSE}
@@ -30,14 +31,16 @@ p_load(# toolkit
 
 source("../src/IRG_functions.R")
 ```
+
 # load counts
+Counts are roughly monthly manual observations of the numbers of bats in a colony. For more information on the method for counting bats, see www.eidolonmonitoring.com
 ```{r}
 colonies <- read.csv("../../../../Dropbox/MPI/Eidolon/Greenwave/data/colonies.csv")
 colonies$date <- ymd(colonies$date)
 colonies %>% summary
 ```
 
-## summarize
+## Table S1: Summary statistics of the count data, including location, timing, range of counts, and method.
 ```{r}
 count_sum <- colonies %>% group_by(Country, Location) %>% 
   dplyr::summarise(start = min(date), end = max(date), 
@@ -47,10 +50,15 @@ count_sum <- colonies %>% group_by(Country, Location) %>%
                              round(max(Count, na.rm = TRUE), -2)))
 ```
 
+# load data downloaded from Google Earth Engine
+Data was accessed using the python package geeExtract.
 
-# load GEE data
+> from downloadData import GEEviMODIS
+> GEEviMODIS('EidolonColonies',metric = ['NDVI','EVI'], timeStep = 'lowest',buf =67000, poly=0, QC='Op1', username = 'edwardhurme', folderOut = "EidolonColonies", scalePix = 500, startYear = 2000, endYear = 2020)
+
+
 ```{r load GEE data}
-EVI <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/rl_MOD13Q1_EVI_2000_2020_ptsB_EidolonColonies_QCOP1_buf50km.csv")
+EVI <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/rl_MOD13Q1_EVI_2000_2020_ptsB_EidolonColonies_QCOP1_buf67km_scalePix500.csv")
 MEVI1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_Peak_1_2000_2020_ptsB.csv")
 MEVI2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_Peak_2_2000_2020_ptsB.csv")
 MIRG1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreenup_1_2000_2020_ptsB.csv")
@@ -66,7 +74,7 @@ MEVIarea1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MOD
 MEVIarea2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Area_2_2000_2020_ptsB.csv")
 ```
 
-# water
+# precipitation
 ```{r load GEE data}
 precip <- read.csv("../../../../Dropbox/MPI/Eidolon/Greenwave/data/GEE/rm_TRMM_pr_2000_2020_ptsB.csv")
 precip$time <- lubridate::ymd_hms(precip$startDate)
@@ -138,7 +146,6 @@ batdf_max_mean$month[which(batdf_max_mean$month == 0)] <- 12
 
 ## Fig 1
 ```{r}
-
 options(scipen=10000)
 fig1 <- 
   ggplot(data = Africa)+ geom_sf() +
@@ -409,6 +416,7 @@ Peaks$month <- round_date(Peaks$date, unit = "month")
 ```
 
 # strict peaks
+Here we use a more conservative criteria to define colony peaks.
 ```{r}
 Strict_Peaks <- data.frame()
 IDs <- 1:17
@@ -475,16 +483,16 @@ Strict_Peaks$month <- round_date(Strict_Peaks$date, unit = "month")
 ```
 
 ### summarize count concentration
-```{r}
-peak_circ <- Peaks %>% group_by(Country, Location) %>% 
+```{r, warning=FALSE, error=FALSE}
+peak_circ <- Peaks %>% group_by(geeID, Country, Location) %>%
   dplyr::summarise(m = round(circ.mean.month(month(round_date(date, unit = "months"))),1),
             sd = round(as.numeric(mean.circular(x = sd.circular(month(round_date(date, unit = "months"))*360/12, type = "angles", units = "degrees", modulo = "2pi")))*12/(360),1),
     r = round(circ.intensity.month(month(round_date(date, unit = "months"))),1),
-    HR = HR_test(data = circular(month(round_date(date, unit = "months"))*2*pi/12, 
+    HR = HR_test(data = circular(month(round_date(date, unit = "months"))*2*pi/12,
                                                       type = "angles", units = "radians", modulo = "2pi"))[1],
-    HR_p = HR_test(data = circular(month(round_date(date, unit = "months"))*2*pi/12, 
+    HR_p = HR_test(data = circular(month(round_date(date, unit = "months"))*2*pi/12,
                                                       type = "angles", units = "radians", modulo = "2pi"))[2])
-# peak_circ %>% write.csv
+write.csv(peak_circ, file = "../../../../Dropbox/MPI/Eidolon/GreenWave/data/peakcolony_circ_summary.csv")
 ```
 
 # plot colony and RS peaks 
@@ -521,42 +529,40 @@ for(i in 1:length(IDs)){
 ```{r}
 rs_max_sum <- rs_max %>% group_by(geeID) %>%
   dplyr::summarise(EVI_month = round(circ.mean.month(month(round_date(EVI_spline, unit = "months"))),1),
-            EVI_month_circ = round(as.numeric(mean.circular(x = circular(month(round_date(EVI_spline, unit = "months"))*360/12, 
+            EVI_month_circ = round(as.numeric(mean.circular(x = circular(month(round_date(EVI_spline, unit = "months"))*360/12,
                                                       type = "angles", units = "degrees", modulo = "2pi")))*12/(360),1),
             EVI_intensity = round(circ.intensity.month(month(round_date(EVI_spline, unit = "months"))),1),
-            EVI_intensity_circ = round(circular::rho.circular(x = circular(month(round_date(EVI_spline, unit = "months"))*360/12, 
+            EVI_intensity_circ = round(circular::rho.circular(x = circular(month(round_date(EVI_spline, unit = "months"))*360/12,
                                                       type = "angles", units = "degrees", modulo = "2pi")),1),
-            EVI_HR = HR_test(data = circular(month(round_date(EVI_spline, unit = "months"))*2*pi/12, 
+            EVI_HR = HR_test(data = circular(month(round_date(EVI_spline, unit = "months"))*2*pi/12,
                                                       type = "angles", units = "radians", modulo = "2pi"))[1],
-            EVI_HR_p = HR_test(data = circular(month(round_date(EVI_spline, unit = "months"))*2*pi/12, 
+            EVI_HR_p = HR_test(data = circular(month(round_date(EVI_spline, unit = "months"))*2*pi/12,
                                                       type = "angles", units = "radians", modulo = "2pi"))[2],
             IRG_month = round(circ.mean.month(month(round_date(IRG_spline, unit = "months"))),1),
             IRG_intensity = round(circ.intensity.month(month(round_date(IRG_spline, unit = "months"))),1),
-            IRG_HR = HR_test(data = circular(month(round_date(IRG_spline, unit = "months"))*2*pi/12, 
+            IRG_HR = HR_test(data = circular(month(round_date(IRG_spline, unit = "months"))*2*pi/12,
                                                       type = "angles", units = "radians", modulo = "2pi"))[1],
-            IRG_HR_p = HR_test(data = circular(month(round_date(IRG_spline, unit = "months"))*2*pi/12, 
+            IRG_HR_p = HR_test(data = circular(month(round_date(IRG_spline, unit = "months"))*2*pi/12,
                                                       type = "angles", units = "radians", modulo = "2pi"))[2],
             precip_month = round(circ.mean.month(month(round_date(precip_spline, unit = "months"))),1),
             precip_intensity = round(circ.intensity.month(month(round_date(precip_spline, unit = "months"))),1),
-            precip_HR = HR_test(data = circular(month(round_date(precip_spline, unit = "months"))*2*pi/12, 
+            precip_HR = HR_test(data = circular(month(round_date(precip_spline, unit = "months"))*2*pi/12,
                                                       type = "angles", units = "radians", modulo = "2pi"))[1],
-            precip_HR_p = HR_test(data = circular(month(round_date(precip_spline, unit = "months"))*2*pi/12, 
+            precip_HR_p = HR_test(data = circular(month(round_date(precip_spline, unit = "months"))*2*pi/12,
                                                       type = "angles", units = "radians", modulo = "2pi"))[2],
             precipp_month = round(circ.mean.month(month(round_date(precip_pspline, unit = "months"))),1),
             precipp_intensity = round(circ.intensity.month(month(round_date(precip_pspline, unit = "months"))),1),
-            precipp_HR = HR_test(data = circular(month(round_date(precip_pspline, unit = "months"))*2*pi/12, 
+            precipp_HR = HR_test(data = circular(month(round_date(precip_pspline, unit = "months"))*2*pi/12,
                                                       type = "angles", units = "radians", modulo = "2pi"))[1],
-            precipp_HR_p = HR_test(data = circular(month(round_date(precip_pspline, unit = "months"))*2*pi/12, 
+            precipp_HR_p = HR_test(data = circular(month(round_date(precip_pspline, unit = "months"))*2*pi/12,
                                                       type = "angles", units = "radians", modulo = "2pi"))[2],
             entropy = entropy[which.max(entropy)])
 rs_max_sum
-# write.csv(rs_max_sum)
 
-HR_test(data = circular(month(round_date(rs_max$EVI_spline, unit = "months"))*2*pi/12, 
-                                                      type = "angles", units = "radians", modulo = "2pi"))
-
-circular((1:5)*360/12, type = "angles", units = "degrees")
-round(as.numeric(circular::mean.circular(x = circular((c(9:12))*360/12, type = "angles", units = "degrees", modulo = "2pi")))*12/(360),1)
+# HR_test(data = circular(month(round_date(rs_max$EVI_spline, unit = "months"))*2*pi/12,
+#                                                       type = "angles", units = "radians", modulo = "2pi"))
+# circular((1:5)*360/12, type = "angles", units = "degrees")
+# round(as.numeric(circular::mean.circular(x = circular((c(9:12))*360/12, type = "angles", units = "degrees", modulo = "2pi")))*12/(360),1)
 
 rho.circular(x = circular((c(9:12))*360/12, type = "angles", units = "degrees", modulo = "2pi"))
 
@@ -698,11 +704,11 @@ for(i in 1:length(IDs)){
     twp <- twentyp[twentyp$year == years[j],]  
     twp_idx <- which(twp$p > 20)
     
-    plot(ymd(tp$p10), tp$p, type = "o")
-    points(ymd(tp$p10[tp_idx]), tp$p[tp_idx], pch = 16)
-    
+    # plot(ymd(tp$p10), tp$p, type = "o")
+    # points(ymd(tp$p10[tp_idx]), tp$p[tp_idx], pch = 16)
+    # 
     overlap <- which(tp$p10 %in% twp$p20[twp_idx])
-    points(ymd(tp$p10[overlap]), tp$p[overlap], pch = 16, col = 2)
+    # points(ymd(tp$p10[overlap]), tp$p[overlap], pch = 16, col = 2)
     
     onset <- NA
     ii <- 1
@@ -918,7 +924,8 @@ ggsave(f3,
 ```
 
 
-# Strict Peaks Correlation
+# Figure S4: Match between phenological events and timing of peak colony size using a stricter criteria for colony peaks. A-D. Peak colony month is plotted against the month peak phenological events, EVI (enhanced vegetation index), IRG (instantaneous rate of green-up), PRP (precipitation), and IRP (instantaneous rate of precipitation). A one-to-one line is provided for reference of a perfect match in timings and circular correlation coefficients are shown in the top left of each panel.
+## Strict Peaks Correlation
 ```{r}
 p1 <- 
   ggplot(Peaks[which(Peaks$Date %in% Strict_Peaks$Date & Peaks$ratio %in% Strict_Peaks$ratio),], 
@@ -986,7 +993,7 @@ p4 <-
 ggarrange(p1,p2,p3,p4, ncol = 2, nrow = 2, common.legend = TRUE)
 ```
 
-# model months to peak IRG
+# Model the variation in months between peak colony size and peak IRG
 ## prep data
 ```{r}
 Peaks$log_colony_size <- log(Peaks$Count)
@@ -1042,7 +1049,6 @@ ggarrange(p1,p2,p3, nrow = 1, labels = LETTERS[1:3])
 Peaks$value <- "IRG"
 p <- ggplot(Peaks,aes(y = abs_months_to_IRG_spline, x = value))+geom_violin(fill = cbPalette[2])+
   geom_jitter(alpha = 0.2, height = 0, width = 0.5)+
-  #geom_hline(yintercept = 0)+
   theme_classic()+
   theme(text = element_text(size = 20))+
   xlab("")+ylab("abs(Months to Peak IRG)")
@@ -1138,6 +1144,7 @@ abline(h = mean(r.sq_df[2,]))
 axis(side = 1, at = 1:17, labels = locations, las = 2)
 ```
 
+# Run model using a more conservative definition of colony peaks 
 ```{r}
 sPeaks <- Peaks[which(Peaks$Date %in% Strict_Peaks$Date & Peaks$ratio %in% Strict_Peaks$ratio),]
 ```
@@ -1221,7 +1228,7 @@ ps2 <- ggplot(Peaks, aes(abs(months_to_IRG_spline), predictIRG, col = Location))
 r.sq_dfs <- sapply(r.sqs, unlist)
 
 ```
-
+## 
 ```{r}
 par(mar = c(7,4,1,1))
 plot(locations, r.sq_dfs[2,], ylab = "R^2", xlab = "", xaxt="n",
