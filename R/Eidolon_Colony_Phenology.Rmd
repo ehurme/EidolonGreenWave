@@ -59,6 +59,7 @@ Data was accessed using the python package geeExtract.
 
 ```{r load GEE data}
 EVI <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/rl_MOD13Q1_EVI_2000_2020_ptsB_EidolonColonies_QCOP1_buf67km_scalePix500.csv")
+EVI0 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/rl_MOD13Q1_EVI_2000_2020_ptsB__EidolonColonies_QCNone_buf67km_scalePix500.csv")
 MEVI1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_Peak_1_2000_2020_ptsB.csv")
 MEVI2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_Peak_2_2000_2020_ptsB.csv")
 MIRG1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreenup_1_2000_2020_ptsB.csv")
@@ -137,31 +138,32 @@ batdf_max_mean <- batdf_max %>% group_by(Country, Location) %>%
             peak_size = mean(count),
             Lat = Lat[1],
             Long = Long[1],
-            month = round(circ.mean.month(month)),
-            yday = round(circ.mean.yday(yday)))
+            month = round(circ.mean.month(month)))
+            #yday = round(circ.mean.yday(yday)))
 
 batdf_max_mean$month[which(batdf_max_mean$month == 0)] <- 12
 
+batdf_max_mean$peak_size %>% log %>% hist(breaks = 1000)
 ```
 
 ## Fig 1
 ```{r}
 options(scipen=10000)
 fig1 <- 
-  ggplot(data = Africa)+ geom_sf() +
+  ggplot(data = Africa)+ geom_sf(fill = "darkgrey") +
   #coord_sf(xlim = c(-20, 45), ylim = c(-20, 20), expand = FALSE) + 
   xlim(c(-20, 45))+ylim(c(-20, 20))+
   geom_point(data = batdf_max_mean, aes(Long, Lat, size = peak_size, col = month), 
              inherit.aes = FALSE) +
   scale_size_continuous(limits = c(min(batdf_max_mean$peak_size),
                                    max(batdf_max_mean$peak_size)), 
-                        breaks = c(6000, 60000, 600000, 6000000),
-                        range = c(2, 7))+
+                        breaks = c(6e3, 6e4, 6e5, 6e6),
+                        range = c(0.5, 20))+
   labs(x = 'Longitude', y = 'Latitude')+
   theme_classic() +
   theme(legend.position = "bottom")+
-  guides(size = guide_legend(nrow = 2, title = "Avg Peak Size"))+
-  viridis::scale_color_viridis(name = "Month", option = "D")
+  guides(size = guide_legend(nrow = 2, title = "Average Peak Size"))+
+  viridis::scale_color_viridis(name = "Month", option = "C")
 fig1
 # ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
 # ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1.eps",

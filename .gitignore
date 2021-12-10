@@ -26,7 +26,6 @@ vignettes/*.pdf
 *.knit.md
 # R Environment Variables
 .Renviron
-<<<<<<< HEAD
 gadm36_RWA_1_sp.rds
 gadm36_RWA_0_sp.rds
 basemap_files
@@ -35,6 +34,4 @@ basemap.html
 RWA_msk_alt.vrt
 RWA_msk_alt.gri
 RWA_msk_alt.grd
-=======
 Accra_count.png
->>>>>>> f4273b6e6c1f7ce10ea8e48c24d9b72648569769
