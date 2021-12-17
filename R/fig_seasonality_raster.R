@@ -1,10 +1,13 @@
 # seasonality raster stack
-require(raster)  
+require(tidyverse) # version 1.3.1
+require(raster) 
 require(lubridate)
 require(magrittr)
 require(doParallel)
 require(foreach)
+require(ggpubr)
 
+# Data downloaded from 
 load("C:/Users/Edward/MODIStsp/VI_Monthly_005dg_v6/Time_Series/RData/Terra/EVI/MOD13C2_EVI_32_2000_1_2021_RData.RData")
 
 Africa <- rnaturalearth::ne_countries(continent = "Africa")
@@ -165,8 +168,8 @@ plot(E)
 text(Lat~ Long, labels = c("A", "B", "C", "D"), cex = 1.5,
      data = avg_peaks[avg_peaks$geeID %in% geeidx,])
 
-# EVI <- read.csv("./../../../Dropbox/GreenWave/EidolonColonies/rawdata/rm_MOD13Q1_EVI_2000_2020_ptsB.csv")
-# EVI$time <- as.Date(ymd_hms(EVI$startDate))
+EVI <- read.csv("./../../../Dropbox/GreenWave/EidolonColonies/rawdata/rl_MOD13Q1_EVI_2000_2020_ptsB_EidolonColonies_QCOP1_buf67km_scalePix500.csv")
+EVI$time <- as.Date(ymd_hms(EVI$startDate))
 i = 4
 # p <- list()
 #for(i in 1:length(geeidx)){
@@ -256,3 +259,4 @@ ggarrange(ggarrange(pA, pB, ncol = 1, labels = c("A", "B"),
                     font.label = list(size = 20)), 
           nrow = 1, heights = c(0.7,1.3,0.7), 
           align = "h", widths = c(1, 1.2, 1))
+
