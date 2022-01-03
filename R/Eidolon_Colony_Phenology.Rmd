@@ -170,6 +170,39 @@ fig1
 #        device = "eps")
 # save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
 ```
+# figure 1 revision
+```{r}
+batdf_max_mean$size_break <- 
+  factor(cut(log(batdf_max_mean$peak_size), 5) %>% as.numeric,
+    levels = c(1,2,3,5),
+    labels = c(
+paste0("<", exp(10) %>% round(digits = -4)),
+paste0("<", exp(11.4) %>% round(digits = -4)),
+paste0("<", exp(12.9) %>% round(digits = -4)),
+# exp(14.3) %>% round(digits = -5),
+paste0("<", exp(15.7) %>% round(digits = -5))))
+
+fig1 <- 
+  ggplot(data = Africa)+ geom_sf(fill = "darkgrey") +
+  #coord_sf(xlim = c(-20, 45), ylim = c(-20, 20), expand = FALSE) + 
+  xlim(c(-20, 45))+ylim(c(-20, 20))+
+  geom_point(data = batdf_max_mean, aes(Long, Lat, shape = factor(size_break), 
+                                        col = month), size = 4,
+             inherit.aes = FALSE) +
+  scale_shape_manual(values=c(15:18))+
+  labs(x = 'Longitude', y = 'Latitude')+
+  theme_classic() +
+  theme(legend.position = "bottom", , legend.box="vertical", legend.margin=margin(),
+        text = element_text(size = 20))+
+  guides(shape = guide_legend(nrow = 2, title = "Average Peak Size"))+
+  viridis::scale_color_viridis(name = "Month", option = "C")
+fig1
+ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
+ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1.eps",
+        device = "eps")
+# save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
+```
+
 
 # calculate entropy
 ```{r}
@@ -228,7 +261,7 @@ psych::pairs.panels(EVI[,c("entropy", "seasonality", "maxEVImonth", "EVIannualsu
 
 # Find corresponding EVI and precipitation data for all colony data
 ```{r}
-IDs <- 1:max(reg_colonies$geeID)
+IDs <- 1:max(colonies$geeID)
 rs <- data.frame()
 i = 1
 for(i in 1:length(IDs)){
@@ -570,7 +603,6 @@ rho.circular(x = circular((c(9:12))*360/12, type = "angles", units = "degrees", 
 
 round(circ.mean.month(9:12),1)
 mean(9:12)
-View(rs_max_sum)
 round(rs_max_sum[,"EVI_HR"],1)
 
 write.csv(rs_max_sum, file = "../../../../Dropbox/MPI/Eidolon/GreenWave/data/phen_summary.csv")
@@ -727,7 +759,7 @@ for(i in 1:length(IDs)){
   rain_onset <- rbind(rain_onset, tmp)
   }
   plot(p$time, p$precipitation, type = "o", # col = (p$mm > 45)+1, 
-       main = unique(reg_colonies$Location[reg_colonies$geeID == i]))
+       main = unique(colonies$Location[colonies$geeID == i]))
   abline(v = rain_onset$onset[rain_onset$geeID == i], col = 2, lwd = 2, lty = 2)
 }
 
@@ -902,7 +934,7 @@ p5 <- ggviolin(CC_mlt, x = "variable", y = "value", fill = "variable",
   theme(legend.position = "none", 
         axis.text.x = element_text(angle = 30, vjust = 1, hjust=1))+ #, text = element_text(size = 20))+
   ylab("Months to Peak Colony Size")+ xlab("")+
-  stat_compare_means(comparisons = my_comparisons, label = "p.signif")+ # Add significance levels
+  stat_compare_means(comparisons = my_comparisons) #, label = "p.signif")+ # Add significance levels
   stat_compare_means(label.y = 50)
 p5
 
