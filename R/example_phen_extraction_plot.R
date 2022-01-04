@@ -98,7 +98,7 @@ gg_peaks <-
 gg_peaks
 
 ########################
-colors <- c("EVI" = "#009E73", "IRG" = "#D55E00", "Prp" = "lightblue", "IRP" = "turquoise", "Count" = "lightgray")
+colors <- c("EVI" = "#009E73", "IRG" = "#D55E00", "precip" = "lightblue", "IRP" = "turquoise", "bats" = "lightgray")
 example_peaks_mlt <- reshape2::melt(example_peaks, id.vars = c("time"))
 ggplot(example_peaks_mlt, aes(x = time, y = value))+
   geom_ribbon(data = example_peaks_mlt[example_peaks_mlt$variable == "bats",], 
@@ -110,15 +110,18 @@ ggplot(example_peaks_mlt, aes(x = time, y = value))+
   geom_line(aes(col = variable, 
                 linetype = variable),size = 1)+
   theme_classic()+
+  scale_x_date(date_labels = "%b") +
   # Count  
   geom_hline(yintercept = 0, col = "gray")+
-  theme(text = element_text(size = 20), 
-      # axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
-      legend.position = "top",
-      legend.text=element_text(size=12))+
+  
   scale_color_manual(values = colors, labels = names(colors), name = "")+
   scale_linetype_manual(name="", values = 2:6, labels = names(colors))+
-  guides(col=guide_legend(nrow=2,byrow=TRUE))
+  guides(col=guide_legend(nrow=2,byrow=TRUE))+
+  theme(text = element_text(size = 20), 
+        # axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
+        legend.key = element_rect(fill = "white", col = "white"),
+        legend.position = "top",
+        legend.text=element_text(size=12))
 
 
 #### ggplot

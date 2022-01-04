@@ -143,7 +143,7 @@ batdf_max_mean <- batdf_max %>% group_by(Country, Location) %>%
 
 batdf_max_mean$month[which(batdf_max_mean$month == 0)] <- 12
 
-batdf_max_mean$peak_size %>% log %>% hist(breaks = 1000)
+# batdf_max_mean$peak_size %>% log %>% hist(breaks = 1000)
 ```
 
 ## Fig 1
@@ -168,6 +168,38 @@ fig1
 # ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
 # ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1.eps",
 #        device = "eps")
+# save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
+```
+# figure 1 revision
+```{r}
+batdf_max_mean$size_break <- 
+  factor(cut(log(batdf_max_mean$peak_size), 5) %>% as.numeric,
+    levels = c(1,2,3,5),
+    labels = c(
+paste0("<", exp(10) %>% round(digits = -4)),
+paste0("<", exp(11.4) %>% round(digits = -4)),
+paste0("<", exp(12.9) %>% round(digits = -4)),
+# exp(14.3) %>% round(digits = -5),
+paste0("<", exp(15.7) %>% round(digits = -5))))
+
+fig1 <- 
+  ggplot(data = Africa)+ geom_sf(fill = "darkgrey") +
+  #coord_sf(xlim = c(-20, 45), ylim = c(-20, 20), expand = FALSE) + 
+  xlim(c(-20, 45))+ylim(c(-20, 20))+
+  geom_point(data = batdf_max_mean, aes(Long, Lat, shape = factor(size_break), 
+                                        col = month), size = 4,
+             inherit.aes = FALSE) +
+  scale_shape_manual(values=c(15:18))+
+  labs(x = 'Longitude', y = 'Latitude')+
+  theme_classic() +
+  theme(legend.position = "bottom", , legend.box="vertical", legend.margin=margin(),
+        text = element_text(size = 20))+
+  guides(shape = guide_legend(nrow = 2, title = "Average Peak Size"))+
+  viridis::scale_color_viridis(name = "Month", option = "C")
+fig1
+ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
+ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1.eps",
+        device = "eps")
 # save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
 ```
 
