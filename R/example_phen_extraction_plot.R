@@ -56,43 +56,43 @@ example_peaks = data.frame(time = x, EVI = fit$y, IRG = fit.$y11,
 colors <- c("EVI" = "#009E73", "IRG" = "#D55E00", "Prp" = "lightblue", "IRP" = "turquoise", "Count" = "lightgray")
 gg_peaks <- 
   ggplot(example_peaks, aes(x = time))+
-    geom_line(aes(y = EVI, col = "EVI"), size = 1, linetype = 5)+
-    geom_line(aes(y = IRG, col = "IRG"), size = 1, linetype = 6)+
-    geom_col(aes(y = precip, col = "Prp"), fill = "lightblue", alpha = 0.1)+
-  geom_line(aes(y = IRP, col = "IRP"), size = 1, linetype = 7)+
+    geom_line(aes(y = EVI, col = "EVI"), size = 1, linetype = 1)+
+    geom_line(aes(y = IRG, col = "IRG"), size = 1, linetype = 1)+
+    #geom_col(aes(y = precip, col = "Prp"), fill = "lightblue", alpha = 0.1)+
+  #geom_line(aes(y = IRP, col = "IRP"), size = 1, linetype = 6)+
     geom_ribbon(aes(ymin = 0, ymax = bats, col = "Count"), alpha = 0.1)+
-    geom_line(aes(y = bats), col = 1, linetype = 2, size = 1)+
+    geom_line(aes(y = bats), col = 1, linetype = 1, size = 1)+
     #scale_color_manual(values=cbPalette)+
     theme_classic()+
-  # Count  
+  # X axis  
   geom_hline(yintercept = 0, col = "gray")+
   # EVI  
   geom_vline(xintercept = example_peaks$time[which.max(example_peaks$EVI)], 
                linetype = 5, col = "darkgreen", size = 1, alpha = 0.5, show.legend = TRUE)+
-  # IRG  
-  geom_vline(xintercept = example_peaks$time[which.max(example_peaks$IRG)], 
+  # # IRG  
+  geom_vline(xintercept = example_peaks$time[which.max(example_peaks$IRG)],
                linetype = 6, col = "darkred", size = 1, alpha = 0.5)+
-  # Precip  
-  geom_vline(xintercept = example_peaks$time[which.max(example_peaks$precip)], 
-             linetype = 8, col = "lightblue", size = 1)+
+  # # Precip  
+  # geom_vline(xintercept = example_peaks$time[which.max(example_peaks$precip)], 
+  #            linetype = 8, col = "lightblue", size = 1)+
   # Count  
   geom_vline(xintercept = example_peaks$time[which.max(example_peaks$bats)], 
-             linetype = 1, col = 1, size = 1, , alpha = 0.5)+  
-  # IRP  
-  geom_vline(xintercept = example_peaks$time[which.max(example_peaks$IRP)], 
-             linetype = 9, col = "turquoise", size = 1, alpha = 0.5)+  
+             linetype = 4, col = 1, size = 1, , alpha = 0.5)+  
+  # # IRP  
+  # geom_vline(xintercept = example_peaks$time[which.max(example_peaks$IRP)], 
+  #            linetype = 9, col = "turquoise", size = 1, alpha = 0.5)+  
     
   scale_x_date(date_labels = "%b") +
     
   labs(color = "", ylab = "value")+ylab("value")+
     
   scale_color_manual(values = colors, labels = names(colors))+
-  scale_linetype_manual(values = c(1, 2,3,4,5),
+  scale_linetype_manual(values = 4:8,#c(1, 2,3,4,5),
                         labels = c("EVI", "IRG", "Prp", "IRP", "Count"))+
     
   theme(text = element_text(size = 20), 
           # axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
-          legend.position = "top",
+          legend.position = "none",
           legend.text=element_text(size=12))+
   guides(col=guide_legend(nrow=2,byrow=TRUE))
 gg_peaks
@@ -113,14 +113,13 @@ ggplot(example_peaks_mlt, aes(x = time, y = value))+
   scale_x_date(date_labels = "%b") +
   # Count  
   geom_hline(yintercept = 0, col = "gray")+
-  
   scale_color_manual(values = colors, labels = names(colors), name = "")+
-  scale_linetype_manual(name="", values = 2:6, labels = names(colors))+
+  scale_linetype_manual(name="", values = 4:8, labels = names(colors))+
   guides(col=guide_legend(nrow=2,byrow=TRUE))+
   theme(text = element_text(size = 20), 
         # axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
         legend.key = element_rect(fill = "white", col = "white"),
-        legend.position = "top",
+        legend.position = "none",
         legend.text=element_text(size=12))
 
 
@@ -179,7 +178,7 @@ example_EVI$entropy <- factor(c(rep("high", nrow(example_EVI)/3),
 gg_entropy <-               
   ggplot(example_EVI, aes(x, rescale(EVI), col = entropy, group = ID, 
                           linetype = entropy))+
-    ylab("EVI")+
+    ylab("entropy")+
     xlab("time")+
     geom_line(size = 1)+
     theme_classic()+
@@ -188,7 +187,7 @@ gg_entropy <-
   theme(text = element_text(size = 20), 
         legend.title=element_text(size=12),
         legend.text=element_text(size=12),
-        legend.position = "top")+
+        legend.position = "none")+
   guides(col=guide_legend(nrow=3,byrow=TRUE))
 
 gg_entropy

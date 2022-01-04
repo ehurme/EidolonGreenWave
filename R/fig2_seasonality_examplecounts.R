@@ -1,6 +1,7 @@
 # seasonality raster stack
 library(pacman)
-p_load(raster, lubridate, magrittr, doParallel, foreach, ggplot2, scales, ggpubr)
+p_load(raster, lubridate, magrittr, doParallel, foreach, 
+       ggplot2, scales, ggpubr, sf)
 
 load("C:/Users/Edward/MODIStsp/VI_Monthly_005dg_v6/Time_Series/RData/Terra/EVI/MOD13C2_EVI_32_2000_1_2021_RData.RData")
 
@@ -157,7 +158,7 @@ text(Lat~ Long, labels = geeID, #cex = 1.5,
 
 geeidx <- c(5, 10, 14, 16)
 plot(S)
-text(Lat~ Long, labels = c("A", "B", "C", "D"), cex = 1.5,
+text(Lat~ Long, labels = c("A", "B", "D", "C"), cex = 1.5,
      data = avg_peaks[avg_peaks$geeID %in% geeidx,])
 
 EVI <- read.csv("./../../../Dropbox/GreenWave/EidolonColonies/rawdata/rm_MOD13Q1_EVI_2000_2020_ptsB_buf67_pix250.csv")
@@ -192,15 +193,21 @@ for(i in 1:length(geeidx)){
                     precip = prp)
   
   evi_mlt <- reshape2::melt(evi, "time")
-  c <- reg_colonies[reg_colonies$geeID == geeidx[i],]
-  
+  c <- colonies[colonies$geeID == geeidx[i],]
+  c$month <- c$date |> month()
+  # seasonality of that location
+  loc <- c[1,]
+  coordinates(loc) <- c("Long", "Lat")
+  loc_sea <- round(extract(S, loc), 2)
   fig[[i]] <- 
     ggplot(evi_mlt[evi_mlt$variable != "precip",], 
            aes(time, value, col = variable, fill = variable))+
     geom_col(data = evi_mlt[evi_mlt$variable == "precip",], alpha = 0.5,
              aes(time, value), col = "lightblue", fill = "lightblue", inherit.aes = FALSE)+
-    geom_line(size = 1)+
+    geom_line(aes(col = variable, 
+                  linetype = variable), size = 1)+
     scale_color_manual(values=cbPalette)+
+    scale_linetype_manual(name="", values = 4:8, labels = names(colors))+
     xlim(c(as.Date("2010-01-01"),
            #c(min(reg_colonies$month[reg_colonies$geeID == geeidx[i]]), 
            max(reg_colonies$month[reg_colonies$geeID == geeidx[i]])))+ 
@@ -209,16 +216,18 @@ for(i in 1:length(geeidx)){
                                      as.Date("2021-01-01"), by = "year"),
                linetype = "dashed", col = "gray")+
     geom_hline(yintercept = 0, col = "gray")+
-    ggtitle(#paste0(LETTERS[i],". ", 
-                   avg_peaks$Location[geeidx[i]])+
-    geom_area(data = c, aes(month, y = count/max(count, na.rm = TRUE)), # *max(evi$evi)), 
+    ggtitle(paste0(# LETTERS[i],". ",
+      avg_peaks$Location[geeidx[i]],
+                   ", entropy:", loc_sea))+
+    geom_area(data = c, aes(x = date, y = Count/max(Count, na.rm = TRUE)), # *max(evi$evi)), 
               col = 1, alpha = 0.1, inherit.aes = FALSE)+
     theme(legend.position = "none", 
+          # plot.title = element_text(hjust = -0.45),
           # axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
-          text = element_text(size = 15))
+          text = element_text(size = 18))
   fig[[i]]
 }
-fig[[4]]
+fig[[3]]
 
 e_df <- as.data.frame(E, xy = TRUE)
 
@@ -227,7 +236,7 @@ p_map <- ggplot(e_df, aes(x,y,fill = entropy))+
   coord_quickmap()+
   geom_text(data = avg_peaks[avg_peaks$geeID %in% geeidx,], 
             col = "white", size = 10,
-            aes(Long, Lat, label = LETTERS[1:4]), inherit.aes = FALSE)+
+            aes(Long, Lat, label = LETTERS[c(1,2,4,3)]), inherit.aes = FALSE)+
   labs(x = "Longitude", y = "Latitude")+
   viridis::scale_fill_viridis()+
   theme(legend.position = "top",
@@ -241,15 +250,14 @@ avg_peaks
 
 load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/gg_examples.Rdata")
 
-fig2 <- ggarrange(ggarrange(fig[[1]], fig[[2]], ncol = 1, labels = c("A", "B")), 
+fig2 <- ggarrange(ggarrange(fig[[1]], fig[[2]], ncol = 1, labels = c("A.", "B.")), 
          ggarrange(ggarrange(gg_peaks, gg_entropy, align = "h"), 
                    p_map, ncol = 1, 
                    heights = c(0.3, 0.7), widths = c(1,1)),
-         ggarrange(fig[[4]], fig[[3]], ncol = 1, labels = c("C", "D")), nrow = 1, 
+         ggarrange(fig[[4]], fig[[3]], ncol = 1, labels = c("C.", "D.")), nrow = 1, 
          #labels = c("A","","C","B","B","D"),
          widths = c(c(0.3,0.4,0.3)))
 fig2
-
 ggsave(fig2, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig2_TRMM.png", 
        width = 20, height = 11)
 ggsave(fig2, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig2.eps", 
