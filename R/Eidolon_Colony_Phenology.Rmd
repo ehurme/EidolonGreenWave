@@ -202,11 +202,6 @@ ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1.ep
         device = "eps")
 # save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
 ```
-<<<<<<< HEAD
-=======
-
->>>>>>> 9423915a4855c24c2d4bf6329e0d124e3367200a
-
 # calculate entropy
 ```{r}
 EVI$entropy <- NA
@@ -1273,6 +1268,48 @@ plot(locations, r.sq_dfs[2,], ylab = "R^2", xlab = "", xaxt="n",
 abline(h = mean(r.sq_dfs[2,]))
 axis(side = 1, at = 1:17, labels = locations, las = 2)
 ```
+
+# Model IRP variation
+```{r}
+
+(b0 <- blmer(abs(months_to_precip_pspline)~
+             1+
+             (1|geeID), Peaks,
+control = lmerControl(check.conv.grad = "ignore"),
+cov.prior = gamma))
+
+b1 <- blmer(abs(months_to_precip_pspline)~
+             scale(max_EVI)+
+             scale(entropy)+
+             scale(log_colony_size)+
+             (1|geeID), Peaks,
+  control = lmerControl(check.conv.grad = "ignore"),
+  cov.prior = gamma)
+b1 %>% summary
+b1 %>% confint()
+
+(b2 <- blmer(abs(months_to_precip_pspline)~
+             scale(max_EVI)+
+               #scale(min_EVI)+
+               # scale(IRG_amp)+
+             scale(amp_EVI)+
+               #scale(entropy)+
+             scale(log_colony_size)+
+             (1|geeID), Peaks,
+control = lmerControl(check.conv.grad = "ignore"),
+cov.prior = gamma))
+summary(b2)
+confint(b2)
+
+BIC(b0, b1,b2)
+
+tab_model(b1)
+plot_model(b1, colors = "black")+theme_bw()+ggtitle("abs(months to IRP)")
+```
+
+
+
+
 
 Acknowledgements
 ```{r}
