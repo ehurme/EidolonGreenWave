@@ -165,7 +165,7 @@ fig1 <-
   guides(size = guide_legend(nrow = 2, title = "Average Peak Size"))+
   viridis::scale_color_viridis(name = "Month", option = "C")
 fig1
-# ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
+ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
 # ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1.eps",
 #        device = "eps")
 # save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
@@ -404,6 +404,7 @@ for(i in 1:length(IDs)){
   abline(v = peaks$date, lty = 2) 
   
   # remove peaks with ratios below 0.4
+  hist(peaks$ratio)
   peaks <- peaks[which(peaks$ratio > 0.4),]
   
   
