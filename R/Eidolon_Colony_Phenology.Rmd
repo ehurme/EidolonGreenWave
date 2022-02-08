@@ -404,7 +404,6 @@ for(i in 1:length(IDs)){
   abline(v = peaks$date, lty = 2) 
   
   # remove peaks with ratios below 0.4
-  hist(peaks$ratio)
   peaks <- peaks[which(peaks$ratio > 0.4),]
   
   

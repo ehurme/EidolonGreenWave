@@ -207,7 +207,7 @@ for(i in 1:length(geeidx)){
     geom_line(aes(col = variable, 
                   linetype = variable), size = 1)+
     scale_color_manual(values=cbPalette)+
-    scale_linetype_manual(name="", values = 4:8, labels = names(colors))+
+    scale_linetype_manual(name="", values = 2:6, labels = names(colors))+
     xlim(c(as.Date("2010-01-01"),
            #c(min(reg_colonies$month[reg_colonies$geeID == geeidx[i]]), 
            max(reg_colonies$month[reg_colonies$geeID == geeidx[i]])))+ 
