@@ -417,7 +417,6 @@ for(i in 1:length(IDs)){
   abline(v = peaks$date, lty = 2) 
   
   # remove peaks with ratios below 0.4
-  hist(peaks$ratio)
   peaks <- peaks[which(peaks$ratio > 0.4),]
   
   
@@ -957,7 +956,7 @@ f3 <- ggarrange(p+theme(text = element_text(size = 15)),
                 p5+theme_classic()+
                   theme(legend.position = "none",
                         axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
-                        text = element_text(size = 15)), 
+                        text = element_text(size = 20)), 
                 ncol = 2, heights = c(1,1), labels = c("", "E"), align = "v")
 
 f3

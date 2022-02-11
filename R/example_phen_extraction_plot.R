@@ -56,8 +56,8 @@ example_peaks = data.frame(time = x, EVI = fit$y, IRG = fit.$y11,
 colors <- c("EVI" = "#009E73", "IRG" = "#D55E00", "Prp" = "lightblue", "IRP" = "turquoise", "Count" = "lightgray")
 gg_peaks <- 
   ggplot(example_peaks, aes(x = time))+
-    geom_line(aes(y = EVI, col = "EVI"), size = 1, linetype = 1)+
-    geom_line(aes(y = IRG, col = "IRG"), size = 1, linetype = 1)+
+    geom_line(aes(y = EVI, col = "EVI"), size = 1, linetype = 2)+
+    geom_line(aes(y = IRG, col = "IRG"), size = 1, linetype = 3)+
     #geom_col(aes(y = precip, col = "Prp"), fill = "lightblue", alpha = 0.1)+
   #geom_line(aes(y = IRP, col = "IRP"), size = 1, linetype = 6)+
     geom_ribbon(aes(ymin = 0, ymax = bats, col = "Count"), alpha = 0.1)+
@@ -68,16 +68,16 @@ gg_peaks <-
   geom_hline(yintercept = 0, col = "gray")+
   # EVI  
   geom_vline(xintercept = example_peaks$time[which.max(example_peaks$EVI)], 
-               linetype = 5, col = "darkgreen", size = 1, alpha = 0.5, show.legend = TRUE)+
+               linetype = 2, col = "darkgreen", size = 1, alpha = 0.5, show.legend = TRUE)+
   # # IRG  
   geom_vline(xintercept = example_peaks$time[which.max(example_peaks$IRG)],
-               linetype = 6, col = "darkred", size = 1, alpha = 0.5)+
+               linetype = 3, col = "darkred", size = 1, alpha = 0.5)+
   # # Precip  
   # geom_vline(xintercept = example_peaks$time[which.max(example_peaks$precip)], 
   #            linetype = 8, col = "lightblue", size = 1)+
   # Count  
   geom_vline(xintercept = example_peaks$time[which.max(example_peaks$bats)], 
-             linetype = 4, col = 1, size = 1, , alpha = 0.5)+  
+             linetype = 1, col = 1, size = 1, , alpha = 0.5)+  
   # # IRP  
   # geom_vline(xintercept = example_peaks$time[which.max(example_peaks$IRP)], 
   #            linetype = 9, col = "turquoise", size = 1, alpha = 0.5)+  
