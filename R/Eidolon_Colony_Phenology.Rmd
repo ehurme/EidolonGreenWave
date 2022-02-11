@@ -943,7 +943,7 @@ f3 <- ggarrange(p+theme(text = element_text(size = 15)),
                 p5+theme_get()+
                   theme(legend.position = "none",
                         axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
-                        text = element_text(size = 15)), 
+                        text = element_text(size = 20)), 
                 ncol = 2, heights = c(1,1), labels = c("", "E"), align = "v")
 
 f3

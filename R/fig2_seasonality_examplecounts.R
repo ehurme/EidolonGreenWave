@@ -218,7 +218,7 @@ for(i in 1:length(geeidx)){
     geom_hline(yintercept = 0, col = "gray")+
     ggtitle(paste0(# LETTERS[i],". ",
       avg_peaks$Location[geeidx[i]],
-                   ", entropy:", loc_sea))+
+                   ", Entropy:", loc_sea))+
     geom_area(data = c, aes(x = date, y = Count/max(Count, na.rm = TRUE)), # *max(evi$evi)), 
               col = 1, alpha = 0.1, inherit.aes = FALSE)+
     theme(legend.position = "none", 
@@ -238,8 +238,8 @@ p_map <- ggplot(e_df, aes(x,y,fill = entropy))+
             col = "white", size = 10,
             aes(Long, Lat, label = LETTERS[c(1,2,4,3)]), inherit.aes = FALSE)+
   labs(x = "Longitude", y = "Latitude")+
-  viridis::scale_fill_viridis()+
-  theme(legend.position = "top",
+  viridis::scale_fill_viridis("Entropy")+
+  theme(legend.position = "top", #fill = guide_legend(title ="Entropy"),
         text = element_text(size = 15))
 p_map
 

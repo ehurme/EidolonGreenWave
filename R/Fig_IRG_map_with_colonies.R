@@ -1,4 +1,4 @@
-### figure 2 IRG map with colonies
+### figure 4 IRG map with colonies
 library(raster)
 library(ggplot2)
 library(rnaturalearth)
@@ -37,20 +37,42 @@ batdf_max_mean$month <- factor(batdf_max_mean$month, levels = 1:12, labels = c("
                                                            "July", "August", "September", 
                                                            "October", "November", "December"))
 
+batdf_max_mean$size_break <- 
+  factor(cut(log(batdf_max_mean$peak_size), 5) %>% as.numeric,
+         levels = c(1,2,3,5),
+         labels = c(
+           paste0("<", exp(10) %>% round(digits = -4)),
+           paste0("<", exp(11.4) %>% round(digits = -4)),
+           paste0("<", exp(12.9) %>% round(digits = -4)),
+           # exp(14.3) %>% round(digits = -5),
+           paste0("<", exp(15.7) %>% round(digits = -5))))
+
 require(scales)
+require(RColorBrewer)
+display.brewer.pal(4,"Reds")
 options(scipen=10000)
 gg <- ggplot(mydf, aes(x = x, y = y, fill = value)) +
   geom_tile() +
   coord_equal()+
   scale_fill_viridis_c() +
-  geom_point(data = batdf_max_mean, aes(Long, Lat, size = peak_size), inherit.aes = FALSE, 
-             col = "red") +
-  scale_size_continuous(limits = c(min(batdf_max_mean$peak_size), max(batdf_max_mean$peak_size)), 
-                        breaks = c(6000,60000, 600000, 6000000),
-                        range = c(2,7))+
+  geom_point(data = batdf_max_mean, aes(Long, Lat, shape = factor(size_break), 
+                                        col = factor(size_break)), 
+                                        # col = "red", 
+             size = 4,
+             inherit.aes = FALSE) +
+  scale_shape_manual(values=c(15:18))+
+  scale_color_manual(values = brewer.pal(5,"Reds")[2:5])+
+  # geom_point(data = batdf_max_mean, aes(Long, Lat , size = peak_size), 
+  #            inherit.aes = FALSE, 
+  #            col = "red") +
+  # scale_size_continuous(limits = c(min(batdf_max_mean$peak_size), max(batdf_max_mean$peak_size)),
+  #                       breaks = c(6000,60000, 600000, 6000000),
+  #                       range = c(2,7))+
   labs(x = 'Longitude', y = 'Latitude', fill = "IRG")+
   theme(legend.position = "bottom")+
-  guides(size = guide_legend(nrow = 2, title = "Avg Peak Size"))+
+  guides(shape = guide_legend(nrow = 2, title = "Avg Peak Size"), 
+         col = guide_legend(title ="Avg Peak Size"),
+         text = element_text(size = 25))+
     #override.aes = list(size = c(.1,1,2,3))))+
   # ggtitle("IRG")+
   # ggthemes::theme_map()+
