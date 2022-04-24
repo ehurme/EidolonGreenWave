@@ -35,7 +35,7 @@ source("../src/IRG_functions.R")
 # load counts
 Counts are roughly monthly manual observations of the numbers of bats in a colony. For more information on the method for counting bats, see www.eidolonmonitoring.com
 ```{r}
-colonies <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/colonies.csv")
+colonies <- read.csv("../../../../Dropbox/MPI/Eidolon/Greenwave/data/colonies.csv")
 colonies$date <- ymd(colonies$date)
 colonies %>% summary
 ```
@@ -50,55 +50,33 @@ count_sum <- colonies %>% group_by(Country, Location) %>%
                              round(max(Count, na.rm = TRUE), -2)))
 ```
 
-### yearly min max
-```{r}
-colonies$year <- year(colonies$date)
-count_annual_sum <- colonies %>% group_by(Country, Location, year, geeID) %>% 
-  dplyr::summarise(start = min(date), end = max(date), 
-            # duration = round((max(date)-min(date))/365,1),
-            # interval = median(diff(date)),
-            counts = n(),
-    min = min(Count, na.rm = TRUE),
-    max = max(Count, na.rm = TRUE),
-    min_max = paste0(round(min(Count, na.rm = TRUE), digits = -2), "-", 
-                             round(max(Count, na.rm = TRUE), -2)))
-count_annual_sum
-
-# Kasanka, while not always counted when bats were not present, always had a minimum of zero bats
-count_annual_sum$min[count_annual_sum$Location == "Kasanka"] <- 0
-count_annual_sum <- count_annual_sum[count_annual_sum$counts > 3,]
-hist(count_annual_sum$counts, breaks = 100, xlim = c(0,12))
-plot(count_annual_sum$counts, count_annual_sum$min)
-```
-
 # load data downloaded from Google Earth Engine
 Data was accessed using the python package geeExtract.
 
 > from downloadData import GEEviMODIS
 > GEEviMODIS('EidolonColonies',metric = ['NDVI','EVI'], timeStep = 'lowest',buf =67000, poly=0, QC='Op1', username = 'edwardhurme', folderOut = "EidolonColonies", scalePix = 500, startYear = 2000, endYear = 2020)
 
-## EVI
+
 ```{r load GEE data}
-EVI <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/rl_MOD13Q1_EVI_2000_2020_ptsB_EidolonColonies_QCOP1_buf67km_scalePix500.csv") # maxEVI and colony size signif, cor 0.61
-EVI0 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/rl_MOD13Q1_EVI_2000_2020_ptsB__EidolonColonies_QCNone_buf67km_scalePix500.csv")
-MEVI1 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_Peak_1_2000_2020_ptsB.csv")
-MEVI2 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_Peak_2_2000_2020_ptsB.csv")
-MIRG1 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_MidGreenup_1_2000_2020_ptsB.csv")
-MIRG2 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_MidGreenup_2_2000_2020_ptsB.csv")
-MGRD1 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_MidGreendown_1_2000_2020_ptsB.csv")
-MGRD2 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_MidGreendown_2_2000_2020_ptsB.csv")
-numcycles <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_NumCycles_2000_2020_ptsB.csv")
-QA1 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_QA_Overall_1_2000_2020_ptsB.csv")
-QA2 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_QA_Overall_2_2000_2020_ptsB.csv")
-MEVIamp1 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_EVI_Amplitude_1_2000_2020_ptsB.csv")
-MEVIamp2 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_EVI_Amplitude_2_2000_2020_ptsB.csv")
-MEVIarea1 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_EVI_Area_1_2000_2020_ptsB.csv")
-MEVIarea2 <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/MODIS_Phen_buf67/p_MCD12Q2_EVI_Area_2_2000_2020_ptsB.csv")
+EVI <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/rl_MOD13Q1_EVI_2000_2020_ptsB_EidolonColonies_QCOP1_buf67km_scalePix500.csv")
+MEVI1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_Peak_1_2000_2020_ptsB.csv")
+MEVI2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_Peak_2_2000_2020_ptsB.csv")
+MIRG1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreenup_1_2000_2020_ptsB.csv")
+MIRG2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreenup_2_2000_2020_ptsB.csv")
+MGRD1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreendown_1_2000_2020_ptsB.csv")
+MGRD2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_MidGreendown_2_2000_2020_ptsB.csv")
+numcycles <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_NumCycles_2000_2020_ptsB.csv")
+QA1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_QA_Overall_1_2000_2020_ptsB.csv")
+QA2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_QA_Overall_2_2000_2020_ptsB.csv")
+MEVIamp1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Amplitude_1_2000_2020_ptsB.csv")
+MEVIamp2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Amplitude_2_2000_2020_ptsB.csv")
+MEVIarea1 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Area_1_2000_2020_ptsB.csv")
+MEVIarea2 <- read.csv("../../../../Dropbox/GreenWave/EidolonColonies/rawdata/MODIS_Phen_buf67/p_MCD12Q2_EVI_Area_2_2000_2020_ptsB.csv")
 ```
 
-## precipitation
+# precipitation
 ```{r load GEE data}
-precip <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/rm_TRMM_pr_2000_2020_ptsB.csv")
+precip <- read.csv("../../../../Dropbox/MPI/Eidolon/Greenwave/data/GEE/rm_TRMM_pr_2000_2020_ptsB.csv")
 precip$time <- lubridate::ymd_hms(precip$startDate)
 ```
 
@@ -152,7 +130,7 @@ batdf_max <- colonies %>% group_by(Country, Location, year) %>%
             Long = Long[which.max(ratio)],
             date = date[which.max(ratio)])
 batdf_max$yday <- yday(batdf_max$date)
-batdf_max$month <- month(round_month(batdf_max$date))
+batdf_max$month <- month(round_date(batdf_max$date, unit = "month"))
 
 batdf_max_mean <- batdf_max %>% group_by(Country, Location) %>% 
   dplyr::summarise(size = mean(size),
@@ -160,71 +138,38 @@ batdf_max_mean <- batdf_max %>% group_by(Country, Location) %>%
             Lat = Lat[1],
             Long = Long[1],
             month = round(circ.mean.month(month)))
-            #yday = round(circ.mean.yday(yday)))
+            # yday = round(circ.mean.yday(yday)))
 
 batdf_max_mean$month[which(batdf_max_mean$month == 0)] <- 12
 
-# batdf_max_mean$peak_size %>% log %>% hist(breaks = 1000)
 ```
 
 ## Fig 1
 ```{r}
 options(scipen=10000)
 fig1 <- 
-  ggplot(data = Africa)+ geom_sf(fill = "darkgrey") +
+  ggplot(data = Africa)+ geom_sf() +
   #coord_sf(xlim = c(-20, 45), ylim = c(-20, 20), expand = FALSE) + 
   xlim(c(-20, 45))+ylim(c(-20, 20))+
   geom_point(data = batdf_max_mean, aes(Long, Lat, size = peak_size, col = month), 
              inherit.aes = FALSE) +
   scale_size_continuous(limits = c(min(batdf_max_mean$peak_size),
                                    max(batdf_max_mean$peak_size)), 
-                        breaks = c(6e3, 6e4, 6e5, 6e6),
-                        range = c(0.5, 20))+
+                        breaks = c(6000, 60000, 600000, 6000000),
+                        range = c(2, 7))+
   labs(x = 'Longitude', y = 'Latitude')+
   theme_classic() +
   theme(legend.position = "bottom")+
-  guides(size = guide_legend(nrow = 2, title = "Average Peak Size"))+
-  viridis::scale_color_viridis(name = "Month", option = "C")
+  guides(size = guide_legend(nrow = 2, title = "Avg Peak Size"))+
+  viridis::scale_color_viridis(name = "Month", option = "D")
 fig1
-ggsave(fig1, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/fig1_avg_colony_map_TRMM.png")
-# ggsave(fig1, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/fig1.eps",
+# ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1_avg_colony_map_TRMM.png")
+# ggsave(fig1, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig1.eps",
 #        device = "eps")
-save(batdf_max_mean, file = "../../../../Dropbox/Manuscripts/ColonyPhenology/data/avg_colony_size_TRMM.RData")
+# save(batdf_max_mean, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
 ```
-# figure 1 revision
-```{r}
-batdf_max_mean$size_break <- 
-  factor(cut(log(batdf_max_mean$peak_size), 5) %>% as.numeric,
-    levels = c(1,2,3,5),
-    labels = c(
-paste0("<", exp(10) %>% round(digits = -4)),
-paste0("<", exp(11.4) %>% round(digits = -4)),
-paste0("<400000"),#, exp(12.9) %>% round(digits = -4)),
-# exp(14.3) %>% round(digits = -5),
-paste0("<", exp(15.7) %>% round(digits = -5))))
 
-fig1 <- 
-  ggplot(data = Africa)+ geom_sf(fill = "darkgrey") +
-  #coord_sf(xlim = c(-20, 45), ylim = c(-20, 20), expand = FALSE) + 
-  xlim(c(-20, 45))+ylim(c(-20, 20))+
-  geom_point(data = batdf_max_mean, aes(Long, Lat, shape = factor(size_break), 
-                                        col = month), size = 4,
-             inherit.aes = FALSE) +
-  scale_shape_manual(values=c(18:15))+
-  labs(x = 'Longitude', y = 'Latitude')+
-  theme_classic() +
-  theme(legend.position = "bottom", , legend.box="vertical", legend.margin=margin(),
-        text = element_text(size = 20))+
-  guides(shape = guide_legend(nrow = 2, title = "Average Peak Size"))+
-  viridis::scale_color_viridis(name = "Month", option = "C")
-fig1
-ggsave(fig1, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/fig1_avg_colony_map_TRMM.png")
-ggsave(fig1, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/fig1.eps",
-        device = "eps")
-# save(batdf_max_mean, file = "../../../../Dropbox/Manuscripts/ColonyPhenology/rdata/avg_colony_size_TRMM.RData")
-```
 # calculate entropy
-## EVI
 ```{r}
 EVI$entropy <- NA
 EVI$seasonality <- NA
@@ -277,60 +222,6 @@ for(i in 1:length(IDs)){
 summary(EVI)
 
 psych::pairs.panels(EVI[,c("entropy", "seasonality", "maxEVImonth", "EVIannualsum")])
-```
-## precip
-```{r}
-precip$entropy <- NA
-precip$seasonality <- NA
-precip$maxprecipmonth <- NA
-precip$precipannualsum <- NA
-
-precip$year <- year(precip$time)
-precip$month <- month(precip$time)
-precip_monthly <- precip %>% group_by(geeID, year, month) %>% 
-  dplyr::summarise(precip = mean(mean, na.rm = TRUE))
-
-IDs <- 1:length(unique(colonies$Location))
-i = 1
-for(i in 1:length(IDs)){
-  em <- precip_monthly[precip_monthly$geeID == IDs[i],]
-  # monthly mean
-  Rm <- em %>% group_by(month, year) %>% 
-    dplyr::summarise(precip = mean(precip, na.rm = TRUE))
-  years <- unique(em$year)
-  for(j in 1:length(years)){
-    R <- mean(Rm$precip[Rm$year == years[j]], na.rm = TRUE)
-  
-    # max month
-    Rmax <- max(Rm$precip[Rm$year == years[j]], na.rm = TRUE)
-    
-    # annual sum
-    Ra <- sum(Rm$precip[Rm$year == years[j]], na.rm = TRUE)
-    
-    # discrete probability distribution of monthly sum
-    ## month/annual
-    pm <- Rm$precip[Rm$year == years[j]]/Ra
-  
-    # uniform distribution
-    qm <- 1/length(Rm$precip[Rm$year == years[j]])
-    
-    # relative entropy
-    ## quantifies the extent of precip concentration in the growing season
-    D <- sum(pm * log(pm/qm, base = 2), na.rm = TRUE)
-    
-    # seasonality  
-    S <- D * (R/Rmax)
-    
-    idx <- which(precip$geeID == IDs[i] & precip$year == years[j])
-    precip$entropy[idx] <- D
-    precip$seasonality[idx] <- S
-    precip$maxprecipmonth[idx] <- Rmax
-    precip$precipannualsum[idx] <- Ra
-  }
-}
-summary(precip)
-
-psych::pairs.panels(precip[,c("entropy", "seasonality", "maxprecipmonth", "precipannualsum")])
 ```
 
 # Find corresponding EVI and precipitation data for all colony data
@@ -424,21 +315,14 @@ for(i in 1:length(IDs)){
               max_EVI = pred[which.max(pred)],
               min_EVI = pred[which.min(pred)],
               entropy = mean(entropy, na.rm = TRUE),
-              maxEVImonth = mean(maxEVImonth, na.rm = TRUE),
-              EVIannualsum = mean(EVIannualsum, na.rm = TRUE))
+              seasonality = mean(seasonality, na.rm = TRUE))
   
   summary(p)
   p$year <- year(p$time)
   p$geeID <- ID
   p_sum <- p %>% group_by(year, geeID) %>% 
     dplyr::summarise(precip_spline = time[which.max(precip)],
-              precip_pspline = time[which.max(pred.prime)],
-              pmax = max(mean),
-              pmin = min(mean),
-              pentropy = mean(entropy, na.rm = TRUE),
-              maxprecipmonth = mean(maxprecipmonth, na.rm = TRUE),
-              precipannualsum = mean(precipannualsum, na.rm = TRUE))
-  p_sum$pamp <- p_sum$pmax - p_sum$pmin
+              precip_pspline = time[which.max(pred.prime)])
 
   MEVI$year <- year(MEVI$date_EVI)
   m_sum1 <- MEVI[MEVI$geeID == ID,] %>% group_by(geeID, year) %>% 
@@ -458,8 +342,8 @@ for(i in 1:length(IDs)){
   rs <- rbind(rs, C)
 }
 summary(rs)
-save(colonies, rs, file = "../../../../Dropbox/Manuscripts/ColonyPhenology/rdata/regular_colonies_TRMM.Rdata")
-load("../../../../Dropbox/Manuscripts/ColonyPhenology/rdata/regular_colonies_TRMM.Rdata")
+save(colonies, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/regular_colonies_TRMM.Rdata")
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/regular_colonies_TRMM.Rdata")
 
 ```  
 
@@ -486,9 +370,9 @@ for(i in 1:length(IDs)){
                 main = rc$Location[1]))
   abline(v = peaks$date, lty = 2) 
   
-  # # remove peaks with ratios below 0.4
-  # peaks <- peaks[which(peaks$ratio > 0.4),]
-  # 
+  # remove peaks with ratios below 0.4
+  peaks <- peaks[which(peaks$ratio > 0.4),]
+  
   
   # remove peaks that are within 6 months
   while(any(diff(peaks$date) < 180)){
@@ -527,16 +411,11 @@ for(i in 1:length(IDs)){
   abline(v = peaks$date, lwd = 2, col = 4) 
   Peaks <- rbind(Peaks, peaks)
 }
-Peaks$month <- round_month(Peaks$date)
+Peaks$month <- round_date(Peaks$date, unit = "month")
 
 ```
 
-```{r}
-Peaks %>% group_by(year, Location, Country) %>% summarise(n())
-```
-
-
-### strict peaks
+# strict peaks
 Here we use a more conservative criteria to define colony peaks.
 ```{r}
 Strict_Peaks <- data.frame()
@@ -599,28 +478,21 @@ for(i in 1:length(IDs)){
   abline(v = peaks$date, lwd = 2, col = 4) 
   Strict_Peaks <- rbind(Strict_Peaks, peaks)
 }
-Strict_Peaks$month <- round_month(Strict_Peaks$date)
+Strict_Peaks$month <- round_date(Strict_Peaks$date, unit = "month")
 
-```
-### new peaks
-ratio constrains max count to 1.
-
-```{r}
-colonies$ratio %>% hist(breaks = 50)
-colonies$ratio %>% quantile(na.rm = TRUE)
 ```
 
 ### summarize count concentration
 ```{r, warning=FALSE, error=FALSE}
-peak_circ <- Peaks %>% group_by(geeID, Country, Location) %>%
-  dplyr::summarise(m = round(circ.mean.month(month(round_month(date))),1),
-            sd = round(as.numeric(mean.circular(x = sd.circular(month(round_month(date, unit = "months"))*360/12, type = "angles", units = "degrees", modulo = "2pi")))*12/(360),1),
-    r = round(circ.intensity.month(month(round_month(date, unit = "months"))),1),
-    HR = HR_test(data = circular(month(round_month(date, unit = "months"))*2*pi/12,
-                                                      type = "angles", units = "radians", modulo = "2pi"))[1],
-    HR_p = HR_test(data = circular(month(round_month(date, unit = "months"))*2*pi/12,
-                                                      type = "angles", units = "radians", modulo = "2pi"))[2])
-write.csv(peak_circ, file = "../../../../Dropbox/Manuscripts/ColonyPhenology/data/peakcolony_circ_summary.csv")
+# peak_circ <- Peaks %>% group_by(geeID, Country, Location) %>%
+#   dplyr::summarise(m = round(circ.mean.month(month(round_date(date, unit = "months"))),1),
+#             sd = round(as.numeric(mean.circular(x = sd.circular(month(round_date(date, unit = "months"))*360/12, type = "angles", units = "degrees", modulo = "2pi")))*12/(360),1),
+#     r = round(circ.intensity.month(month(round_date(date, unit = "months"))),1),
+#     HR = HR_test(data = circular(month(round_date(date, unit = "months"))*2*pi/12,
+#                                                       type = "angles", units = "radians", modulo = "2pi"))[1],
+#     HR_p = HR_test(data = circular(month(round_date(date, unit = "months"))*2*pi/12,
+#                                                       type = "angles", units = "radians", modulo = "2pi"))[2])
+# write.csv(peak_circ, file = "../../../../Dropbox/MPI/Eidolon/GreenWave/data/peakcolony_circ_summary.csv")
 ```
 
 # plot colony and RS peaks 
@@ -633,14 +505,7 @@ rs_max <- rs %>% group_by(year, geeID) %>%
             precip_spline = precip_spline[1],
             precip_pspline = precip_pspline[1],
             entropy = entropy[1],
-            max_EVI = max_EVI[which.max(max_EVI)],
-            EVIannualsum = max(EVIannualsum),
-            maxEVImonth = max(maxEVImonth),
-            pentropy = pentropy[1],
-            max_prp = max(pmax), # ,
-            min_prp = min(pmin),
-            precipannualsum = max(precipannualsum),
-            maxprecipmonth = max(maxprecipmonth))
+            max_EVI = max_EVI[which.max(max_EVI)]) # ,
             
 for(i in 1:length(IDs)){
   p <- Peaks[which(Peaks$geeID == IDs[i]),]
@@ -660,55 +525,65 @@ for(i in 1:length(IDs)){
                                                                1))
 }
 ```
-
 # summarize sd and mean date of phenology and peak count
-
-
-commented out because it takes forever
 ```{r}
 # rs_max_sum <- rs_max %>% group_by(geeID) %>%
-#   dplyr::summarise(
-#             EVI_month = round(circ.mean.month(month(round_month(ymd(EVI_spline)))),1),
-#             EVI_month_circ = round(as.numeric(mean.circular(x = circular(month(round_month(ymd(EVI_spline)))*360/12,
+#   dplyr::summarise(EVI_month = round(circ.mean.month(month(round_date(EVI_spline, unit = "months"))),1),
+#             EVI_month_circ = round(as.numeric(mean.circular(x = circular(month(round_date(EVI_spline, unit = "months"))*360/12,
 #                                                       type = "angles", units = "degrees", modulo = "2pi")))*12/(360),1),
-#             EVI_intensity = round(circ.intensity.month(month(round_month(ymd(EVI_spline)))),1),
-#             EVI_intensity_circ = round(circular::rho.circular(x = circular(month(round_month(ymd(EVI_spline)))*360/12,
+#             EVI_intensity = round(circ.intensity.month(month(round_date(EVI_spline, unit = "months"))),1),
+#             EVI_intensity_circ = round(circular::rho.circular(x = circular(month(round_date(EVI_spline, unit = "months"))*360/12,
 #                                                       type = "angles", units = "degrees", modulo = "2pi")),1),
-#             EVI_HR = HR_test(data = circular(month(round_month(ymd(EVI_spline)))*2*pi/12,
+#             EVI_HR = HR_test(data = circular(month(round_date(EVI_spline, unit = "months"))*2*pi/12,
 #                                                       type = "angles", units = "radians", modulo = "2pi"))[1],
-#             EVI_HR_p = HR_test(data = circular(month(round_month(ymd(EVI_spline)))*2*pi/12,
+#             EVI_HR_p = HR_test(data = circular(month(round_date(EVI_spline, unit = "months"))*2*pi/12,
 #                                                       type = "angles", units = "radians", modulo = "2pi"))[2],
-#             IRG_month = round(circ.mean.month(month(round_month(ymd(IRG_spline)))),1),
-#             IRG_intensity = round(circ.intensity.month(month(round_month(ymd(IRG_spline)))),1),
-#             IRG_HR = HR_test(data = circular(month(round_month(ymd(IRG_spline)))*2*pi/12,
+#             IRG_month = round(circ.mean.month(month(round_date(IRG_spline, unit = "months"))),1),
+#             IRG_intensity = round(circ.intensity.month(month(round_date(IRG_spline, unit = "months"))),1),
+#             IRG_HR = HR_test(data = circular(month(round_date(IRG_spline, unit = "months"))*2*pi/12,
 #                                                       type = "angles", units = "radians", modulo = "2pi"))[1],
-#             IRG_HR_p = HR_test(data = circular(month(round_month(ymd(IRG_spline)))*2*pi/12,
+#             IRG_HR_p = HR_test(data = circular(month(round_date(IRG_spline, unit = "months"))*2*pi/12,
 #                                                       type = "angles", units = "radians", modulo = "2pi"))[2],
-#             #precip_month = round(circ.mean.month(month(round_month(as.Date(precip_spline)))),1))
-#             precip_month = precip_spline %>% as.Date %>% round_month %>% month %>% circ.mean.month %>% round(digits = 1),
-#             precip_intensity = round(circ.intensity.month(month(round_month(as.Date(precip_spline)))),1),
-#             precip_HR = HR_test(data = circular(month(round_month(as.Date(precip_spline)))*2*pi/12,
+#             precip_month = round(circ.mean.month(month(round_date(precip_spline, unit = "months"))),1),
+#             precip_intensity = round(circ.intensity.month(month(round_date(precip_spline, unit = "months"))),1),
+#             precip_HR = HR_test(data = circular(month(round_date(precip_spline, unit = "months"))*2*pi/12,
 #                                                       type = "angles", units = "radians", modulo = "2pi"))[1],
-#             precip_HR_p = HR_test(data = circular(month(round_month(as.Date(precip_spline)))*2*pi/12,
+#             precip_HR_p = HR_test(data = circular(month(round_date(precip_spline, unit = "months"))*2*pi/12,
 #                                                       type = "angles", units = "radians", modulo = "2pi"))[2],
-#             precipp_month = round(circ.mean.month(month(round_month(as.Date(precip_pspline)))),1),
-#             precipp_intensity = round(circ.intensity.month(month(round_month(as.Date(precip_pspline)))),1),
-#             precipp_HR = HR_test(data = circular(month(round_month(as.Date(precip_pspline)))*2*pi/12,
+#             precipp_month = round(circ.mean.month(month(round_date(precip_pspline, unit = "months"))),1),
+#             precipp_intensity = round(circ.intensity.month(month(round_date(precip_pspline, unit = "months"))),1),
+#             precipp_HR = HR_test(data = circular(month(round_date(precip_pspline, unit = "months"))*2*pi/12,
 #                                                       type = "angles", units = "radians", modulo = "2pi"))[1],
-#             precipp_HR_p = HR_test(data = circular(month(round_month(as.Date(precip_pspline)))*2*pi/12,
+#             precipp_HR_p = HR_test(data = circular(month(round_date(precip_pspline, unit = "months"))*2*pi/12,
 #                                                       type = "angles", units = "radians", modulo = "2pi"))[2],
-#             entropy = entropy[which.max(entropy)],
-#             pentropy = pentropy[which.max(pentropy)])
+#             entropy = entropy[which.max(entropy)])
 # rs_max_sum
 # 
-# save(rs, rs_max, rs_max_sum, file = "../../../../Dropbox/Manuscripts/ColonyPhenology/rdata/rs_max_sum_TRMM.Rdata")
+# # HR_test(data = circular(month(round_date(rs_max$EVI_spline, unit = "months"))*2*pi/12,
+# #                                                       type = "angles", units = "radians", modulo = "2pi"))
+# # circular((1:5)*360/12, type = "angles", units = "degrees")
+# # round(as.numeric(circular::mean.circular(x = circular((c(9:12))*360/12, type = "angles", units = "degrees", modulo = "2pi")))*12/(360),1)
 # 
-# write.csv(rs_max_sum, file = "../../../../Dropbox/Manuscripts/ColonyPhenology/data/phen_summary.csv")
-rs_max_sum <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/phen_summary.csv")
+# rho.circular(x = circular((c(9:12))*360/12, type = "angles", units = "degrees", modulo = "2pi"))
+# 
+# round(circ.mean.month(9:12),1)
+# mean(9:12)
+# View(rs_max_sum)
+# round(rs_max_sum[,"EVI_HR"],1)
+# 
+# write.csv(rs_max_sum, file = "../../../../Dropbox/MPI/Eidolon/GreenWave/data/phen_summary.csv")
+rs_max_sum <- read.csv("../../../../Dropbox/MPI/Eidolon/GreenWave/data/phen_summary.csv")
 ```
 
-## Angular concentration
-### how correlated are entropy and intensity
+```{r}
+rs_max_sum <- rs_max_sum[order(rs_max_sum$geeID),]
+plot(rs_max_sum$geeID, rs_max_sum$EVI_intensity, type = "o", col = 3,
+     ylab = "angular concentration", ylim = c(0,1))
+points(rs_max_sum$geeID, rs_max_sum$IRG_intensity, type = "o", col = 2)
+points(rs_max_sum$geeID, rs_max_sum$precip_intensity, type = "o", col = 4)
+points(rs_max_sum$geeID, rs_max_sum$precipp_intensity, type = "o", col = "blue")
+```
+
 ```{r}
 rs_max_sum <- rs_max_sum[order(rs_max_sum$entropy),]
 plot(rs_max_sum$entropy, rs_max_sum$EVI_intensity, type = "o", col = 3,
@@ -735,37 +610,41 @@ for(i in 1:length(IDs)){
   j = 1
   for(j in 1:nrow(p)){
     # spline
-    Peaks$EVI_spline[pidx[j]] <- round_month(
+    Peaks$EVI_spline[pidx[j]] <- round_date(
       ymd(r$EVI_spline[which.min(abs(p$month[j] - as.Date(r$EVI_spline)))]), 
       unit = "month")
     peak_EVI_diff <- abs(as.Date(Peaks$EVI_spline[pidx[j]]) - p$month[j])
     if(peak_EVI_diff > 182){
-      Peaks$EVI_spline[pidx[j]] <- round_month(
+      Peaks$EVI_spline[pidx[j]] <- round_date(
         ymd(r_half$EVI_spline[which.min(abs(p$month[j] - as.Date(r_half$EVI_spline)))]), 
         unit = "month")
     }
     
-    Peaks$IRG_spline[pidx[j]] <- round_month(
+    Peaks$IRG_spline[pidx[j]] <- round_date(
       ymd(r$IRG_spline[which.min(abs(p$month[j] - as.Date(r$IRG_spline)))]), 
       unit = "month")
     peak_IRG_diff <- abs(as.Date(Peaks$IRG_spline[pidx[j]]) - p$month[j])
     if(peak_IRG_diff > 182){
-      Peaks$IRG_spline[pidx[j]] <- round_month(
+      Peaks$IRG_spline[pidx[j]] <- round_date(
         ymd(r_half$IRG_spline[which.min(abs(p$month[j] - as.Date(r_half$IRG_spline)))]), 
         unit = "month")
     }
     
     if(Peaks$IRG_spline[pidx[j]] == Peaks$EVI_spline[pidx[j]]){
-       Peaks$EVI_spline[pidx[j]] <- round_month(
-      ymd(r$EVI_spline[which.min(abs(p$month[j] - as.Date(r$EVI_spline)))]))
+       Peaks$EVI_spline[pidx[j]] <- round_date(
+      ymd(r$EVI_spline[which.min(abs(p$month[j] - as.Date(r$EVI_spline)))]), 
+      unit = "month")
     }    
     
+   
     # precipitation
-    Peaks$precip_spline[pidx[j]] <- #round_month(
-      r$precip_spline[which.min(abs(p$month[j] - as.Date(r$precip_spline)))]#)
+    Peaks$precip_spline[pidx[j]] <- round_date(
+      r$precip_spline[which.min(abs(p$month[j] - as.Date(r$precip_spline)))], 
+      unit = "month")
     
-    Peaks$precip_pspline[pidx[j]] <- #round_month(
-      r$precip_pspline[which.min(abs(p$month[j] - as.Date(r$precip_pspline)))]#)
+    Peaks$precip_pspline[pidx[j]] <- round_date(
+      r$precip_pspline[which.min(abs(p$month[j] - as.Date(r$precip_pspline)))], 
+      unit = "month")
    
   }
 }
@@ -786,24 +665,21 @@ Peaks$months_to_precip_pspline <- round(difftime(Peaks$month,
 wilcox.test(Peaks$months_to_EVI_spline, Peaks$months_to_IRG_spline)
 wilcox.test(Peaks$months_to_precip_spline, Peaks$months_to_IRG_spline)
 wilcox.test(Peaks$months_to_precip_pspline, Peaks$months_to_IRG_spline)
-wilcox.test(Peaks$months_to_precip_pspline, Peaks$months_to_precip_spline)
-
 summary(Peaks)
 
-save(Peaks, Strict_Peaks, rs, file = "../../../../Dropbox/Manuscripts/ColonyPhenology/rdata/avg_peaks_TRMM.RData")
-load("../../../../Dropbox/Manuscripts/ColonyPhenology/rdata/avg_peaks_TRMM.RData")
-```
-## sum abs diff in months from peak colony size
-```{r}
 sum(abs(Peaks$months_to_EVI_spline))
 sum(abs(Peaks$months_to_IRG_spline))
 sum(abs(Peaks$months_to_precip_spline))
 sum(abs(Peaks$months_to_precip_pspline))
+
+save(Peaks, Strict_Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks_TRMM.RData")
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks_TRMM.RData")
 ```
+
 # rain onset
 ## daily
 ```{r}
-dailyp <- read.csv("../../../../Dropbox/Manuscripts/ColonyPhenology/data/GEE/TRMM_3hr_DailyPrecip_EidolonColonies.csv")
+dailyp <- read.csv("../../../../Dropbox/MPI/Eidolon/GreenWave/data/GEE/TRMM_3hr_DailyPrecip_EidolonColonies.csv")
 dailyp$time <- dmy(dailyp$system.time_start)
 rain_onset <- data.frame()
 IDs = 1:17
@@ -854,8 +730,8 @@ for(i in 1:length(IDs)){
 }
 
 rain_onset_sum <- rain_onset %>% group_by(geeID, year) %>% 
-  dplyr::summarise(onset = onset[1])
-rain_onset_sum$month = month(round_month(rain_onset_sum$onset))
+  dplyr::summarise(onset = onset[1],
+    month = month(round_date(onset[1], unit = "month")))
 rain_onset_sum %>% group_by(geeID) %>% 
   dplyr::summarise(avg_month = round(circ.mean.month(na.omit(month)),1), 
             count = length(na.omit(month)))
@@ -934,7 +810,7 @@ for(i in 1:nrow(Peaks)){
 ```
 
 # Fig 3
-## Plot EVI, IRG and Precip vs Peak Colony 
+# Plot EVI, IRG and Precip vs Peak Colony 
 ```{r}
 my.formula <- y ~ sin(pi*x/12)+cos(pi*x/12)
 
@@ -1024,7 +900,7 @@ p5 <- ggviolin(CC_mlt, x = "variable", y = "value", fill = "variable",
   theme(legend.position = "none", 
         axis.text.x = element_text(angle = 30, vjust = 1, hjust=1))+ #, text = element_text(size = 20))+
   ylab("Months to Peak Colony Size")+ xlab("")+
-  stat_compare_means(comparisons = my_comparisons)+ #, label = "p.signif")+ # Add significance levels
+  stat_compare_means(comparisons = my_comparisons, label = "p.signif")+ # Add significance levels
   stat_compare_means(label.y = 50)
 p5
 
@@ -1032,17 +908,17 @@ p <- ggarrange(p1,p2,p3,p4, ncol = 2, nrow = 2, common.legend = FALSE,
           labels = c("A", "B", "C", "D"), label.y = 1)  
 p
 f3 <- ggarrange(p+theme(text = element_text(size = 15)), 
-                p5+theme_classic()+
+                p5+theme_get()+
                   theme(legend.position = "none",
                         axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
-                        text = element_text(size = 20)), 
+                        text = element_text(size = 15)), 
                 ncol = 2, heights = c(1,1), labels = c("", "E"), align = "v")
 
 f3
 ggsave(f3,
-filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/fig3_TRMM.png", width = 11, height = 5)
+filename = "../../../../Dropbox/MPI/Eidolon/GreenWave/plots/fig3_TRMM.png", width = 11, height = 5)
 ggsave(f3,
-  filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/fig3.eps", 
+  filename = "../../../../Dropbox/MPI/Eidolon/GreenWave/plots/fig3.eps", 
   width = 11, height = 5, device = 
   "eps")
 ```
@@ -1117,290 +993,104 @@ p4 <-
 ggarrange(p1,p2,p3,p4, ncol = 2, nrow = 2, common.legend = TRUE)
 ```
 
-# Model time to peak colony size
-Model the variation in months between peak colony size and peak IRG/IRP
+# Model the variation in months between peak colony size and peak IRG
 ## prep data
 ```{r}
 Peaks$log_colony_size <- log(Peaks$Count)
 Peaks$abs_months_to_IRG_spline <- abs(Peaks$months_to_IRG_spline)
-Peaks$abs_months_to_IRP_spline <- abs(Peaks$months_to_precip_pspline)
-layout(cbind(1,2))
-hist(Peaks$abs_months_to_IRG_spline, main = "",xlim =c(0,8), breaks = 12)
-hist(Peaks$abs_months_to_IRP_spline, main = "", breaks = 12)
+hist(Peaks$months_to_IRG_spline)
 ```
-
 ## join peaks and rs
 ```{r}
-i = 1
 for(i in 1:nrow(Peaks)){
   idx <- which(Peaks$geeID[i] == rs$geeID & Peaks$year[i] == rs$year)
   Peaks$amp[i] <-     max(rs$amp[idx], na.rm = TRUE)
+  Peaks$entropy[i] <- rs$entropy[idx]
   Peaks$max_EVI[i] <- max(rs$max_EVI[idx], na.rm = TRUE)
   Peaks$min_EVI[i] <- max(rs$min_EVI[idx], na.rm = TRUE)
-  Peaks$amp_EVI[i] <- max(rs$amp[idx], na.rm = TRUE)
-  Peaks$entropy[i] <- max(rs$entropy[idx], na.rm = TRUE)
-  #Peaks$maxEVImonth[i] <- max(rs$maxEVImonth[idx], na.rm = TRUE)
-  Peaks$EVIannualsum[i] <- max(rs$EVIannualsum[idx], na.rm = TRUE)
-  Peaks$max_PRP[i] <- max(rs$pmax[idx], na.rm = TRUE)
-  Peaks$min_PRP[i] <- max(rs$pmin[idx], na.rm = TRUE)
-  Peaks$amp_PRP[i] <- max(rs$pamp[idx], na.rm = TRUE)
-  Peaks$pentropy[i] <- max(rs$pentropy[idx], na.rm = TRUE)
-  #Peaks$maxprecipmonth[i] <- max(rs$maxprecipmonth[idx], na.rm = TRUE)
-  Peaks$precipannualsum[i] <- max(rs$precipannualsum[idx], na.rm = TRUE)
+  Peaks$max_IRG[i] <- max(rs$max_IRG[idx], na.rm = TRUE)
+  Peaks$min_IRG[i] <- max(rs$min_IRG[idx], na.rm = TRUE)
 }
-# Peaks$amp_EVI <- Peaks$max_EVI - Peaks$min_EVI
-# Peaks$IRG_amp <- Peaks$max_IRG - Peaks$min_IRG
+Peaks$amp_EVI <- Peaks$max_EVI - Peaks$min_EVI
+Peaks$IRG_amp <- Peaks$max_IRG - Peaks$min_IRG
 
-summary(rs)
-psych::pairs.panels(Peaks[,c("abs_months_to_IRG_spline", # "abs_months_to_IRP_spline", 
-                             "log_colony_size", # "ratio", 
-                             "entropy", #"EVIannualsum", 
-                             "max_EVI", "min_EVI", "amp_EVI", "amp", # - correlated with entropy
-                             #)])
-# psych::pairs.panels(Peaks[,c(
-                             "abs_months_to_IRP_spline", 
-                             #"log_colony_size", # "ratio", 
-                             "pentropy", #"precipannualsum", 
-                             "max_PRP"#, "min_PRP" #"amp_PRP" - correlated with pentropy
-                             )])
+psych::pairs.panels(Peaks[,c("abs_months_to_IRG_spline", "log_colony_size",
+                             "ratio", "entropy", "max_EVI", "min_EVI", "max_IRG", "min_IRG", 
+                             "IRG_amp",
+                             "amp_EVI", "amp")])
 summary(Peaks)
 ```
 
-## join annual max min with env
 ```{r}
-
-count_annual_sum
-
-for(i in 1:nrow(count_annual_sum)){
-  idx <- which(count_annual_sum$geeID[i] == rs$geeID & count_annual_sum$year[i] == rs$year)
-  count_annual_sum$amp[i] <-     max(rs$amp[idx], na.rm = TRUE)
-  count_annual_sum$max_EVI[i] <- max(rs$max_EVI[idx], na.rm = TRUE)
-  count_annual_sum$min_EVI[i] <- max(rs$min_EVI[idx], na.rm = TRUE)
-  count_annual_sum$amp_EVI[i] <- max(rs$amp[idx], na.rm = TRUE)
-  count_annual_sum$entropy[i] <- max(rs$entropy[idx], na.rm = TRUE)
-  #count_annual_sum$maxEVImonth[i] <- max(rs$maxEVImonth[idx], na.rm = TRUE)
-  count_annual_sum$EVIannualsum[i] <- max(rs$EVIannualsum[idx], na.rm = TRUE)
-  count_annual_sum$max_PRP[i] <- max(rs$pmax[idx], na.rm = TRUE)
-  count_annual_sum$min_PRP[i] <- max(rs$pmin[idx], na.rm = TRUE)
-  count_annual_sum$amp_PRP[i] <- max(rs$pamp[idx], na.rm = TRUE)
-  count_annual_sum$pentropy[i] <- max(rs$pentropy[idx], na.rm = TRUE)
-  #count_annual_sum$maxprecipmonth[i] <- max(rs$maxprecipmonth[idx], na.rm = TRUE)
-  count_annual_sum$precipannualsum[i] <- max(rs$precipannualsum[idx], na.rm = TRUE)
-}
-
-count_annual_sum$min0 <- 0
-count_annual_sum$min0[count_annual_sum$min > 0] <- 1
-summary(count_annual_sum)
-psych::pairs.panels(count_annual_sum[,c(#"abs_months_to_IRG_spline", # "abs_months_to_IRP_spline", 
-                             "min", "min0", "max", # "ratio", 
-                             "entropy", #"EVIannualsum", 
-                             "max_EVI", "min_EVI", "amp_EVI", "amp", # - correlated with entropy
-                             #)])
-# psych::pairs.panels(Peaks[,c(
-                             # "abs_months_to_IRP_spline", 
-                             #"log_colony_size", # "ratio", 
-                             "pentropy", #"precipannualsum", 
-                             "max_PRP"#, "min_PRP" #"amp_PRP" - correlated with pentropy
-                             )])
-```
-
-### save
-```{r}
-save(Peaks, rs, count_annual_sum, file = "../../../../Dropbox/Manuscripts/ColonyPhenology/rdata/model_peaks_TRMM.RData")
-load("../../../../Dropbox/Manuscripts/ColonyPhenology/rdata/model_peaks_TRMM.RData")
+save(Peaks, rs, file = "../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks_TRMM.RData")
+load("../../../../Dropbox/MPI/Eidolon/Greenwave/rdata/model_peaks_TRMM.RData")
 ```
 
 ### Fig S1
-#### months to IRG vs predictors
 ```{r}
-df <- Peaks[Peaks$Location != "Kasanka",]
-
 p1 <- 
-  ggplot(df, aes(x = entropy, y = abs_months_to_IRG_spline))+
-  geom_point(aes(shape = Location, col = Location))+
-  scale_shape_manual(values=1:length(unique((Peaks$Location))))+
-  geom_smooth(method = "lm", col = "black")+
+  ggplot(Peaks, aes(x = entropy, y = abs_months_to_IRG_spline))+
+  geom_point(alpha = 0.2)+geom_smooth(method = "lm", col = "black")+
   theme_classic()+
-  ylab("Months to Peak IRG")+xlab("EVI Entropy")
+  ylab("Months to Peak IRG")+xlab("Entropy")
 p2 <- 
-  ggplot(df,
+  ggplot(Peaks, #[-42,],
        aes(x = max_EVI, y = abs_months_to_IRG_spline))+
-  geom_point(aes(shape = Location, col = Location))+
-  scale_shape_manual(values=1:length(unique((Peaks$Location))))+
-  geom_smooth(method = "lm", col = "black")+
+  geom_point(alpha = 0.2)+geom_smooth(method = "lm", col = "black")+
   theme_classic()+
   ylab("Months to Peak IRG")+xlab("max(EVI)")
-p3 <- ggplot(df, aes(x = log_colony_size, y = abs_months_to_IRG_spline))+
-  geom_point(aes(shape = Location, col = Location))+
-  scale_shape_manual(values=1:length(unique((Peaks$Location))))+
-  geom_smooth(method = "lm", col = "black")+
+p3 <- ggplot(Peaks, aes(x = log_colony_size, y = abs_months_to_IRG_spline))+
+  geom_point(alpha = 0.2)+geom_smooth(method = "lm", col = "black")+
   theme_classic()+
   ylab("Months to Peak IRG")+xlab("log(colony size)")
 
-ggarrange(p1,p2,p3, nrow = 1, labels = LETTERS[1:3], common.legend = TRUE, legend = "right")
-```
-#### months to IRP vs predictors
-```{r}
-p4 <- 
-  ggplot(Peaks, aes(x = pentropy, y = abs_months_to_IRP_spline))+
-  geom_point(aes(shape = Location, col = Location))+
-  scale_shape_manual(values=1:length(unique((Peaks$Location))))+
-  geom_smooth(method = "lm", col = "black")+
-  theme_classic()+
-  ylab("Months to Peak IRP")+xlab("PRP Entropy")
-p5 <- 
-  ggplot(Peaks, #[-42,],
-       aes(x = max_EVI, y = abs_months_to_IRP_spline))+
-  geom_point(aes(shape = Location, col = Location))+
-  scale_shape_manual(values=1:length(unique((Peaks$Location))))+
-  geom_smooth(method = "lm", col = "black")+
-  theme_classic()+
-  ylab("Months to Peak IRP")+xlab("max(PRP)")
-p6 <- ggplot(Peaks, aes(x = log_colony_size, y = abs_months_to_IRP_spline))+
-  geom_point(aes(shape = Location, col = Location))+
-  scale_shape_manual(values=1:length(unique((Peaks$Location))))+
-  geom_smooth(method = "lm", col = "black")+
-  theme_classic()+
-  ylab("Months to Peak IRP")+xlab("log(colony size)")
+ggarrange(p1,p2,p3, nrow = 1, labels = LETTERS[1:3])
 
-ps1 <- ggarrange(p1,p2,p3,p4,p5,p6, nrow = 2,ncol = 3, labels = LETTERS[1:6],
-                 common.legend = TRUE, legend = "right")
-ps1
-ggsave(ps1, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/figs1.png")
-ggsave(ps1, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/figs1.eps", device = "eps")
-```
-### compare time to IRG and IRP
-```{r}
-peak_mlt <- data.table::melt(data = Peaks, 
-                 id = c("date"),
-                 measure = c("abs_months_to_IRG_spline", 
-                        "abs_months_to_IRP_spline"),
-                 value.name = "diff")
-
-p <- ggplot(peak_mlt,aes(y = diff, x = variable))+
-  geom_violin(aes(fill = variable))+
-  geom_jitter(alpha = 0.2, height = 0, width = 0.2)+
+Peaks$value <- "IRG"
+p <- ggplot(Peaks,aes(y = abs_months_to_IRG_spline, x = value))+geom_violin(fill = cbPalette[2])+
+  geom_jitter(alpha = 0.2, height = 0, width = 0.5)+
   theme_classic()+
-  theme(text = element_text(size = 15),
-        legend.position = "none")+
-  xlab("")+ylab("abs(Months to Peak Colony Size)")+
-  scale_x_discrete(labels = c("IRG", "IRP"))
+  theme(text = element_text(size = 20))+
+  xlab("")+ylab("abs(Months to Peak IRG)")
 p
 ```
-## model IRG diff
-### bglmer
-Bayesian generalized linear mixed model
-#### Null
+
+## bglmer
 ```{r}
+
 (b0 <- blmer(abs(months_to_IRG_spline)~
              1+
              (1|geeID), Peaks,
 control = lmerControl(check.conv.grad = "ignore"),
 cov.prior = gamma))
-```
-#### max EVI
-```{r}
-bmaxevi <- blmer(abs(months_to_IRG_spline)~
-             scale(max_EVI)+
-             (1|geeID), Peaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bmaxevi %>% summary
-```
-#### entropy
-```{r}
-bentropy <- blmer(abs(months_to_IRG_spline)~
-             scale(entropy)+
-             (1|geeID), Peaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bentropy %>% summary
-```
-#### log colony size
-```{r}
-bcolony <- blmer(abs(months_to_IRG_spline)~
-             scale(log_colony_size)+
-             (1|geeID), Peaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bcolony %>% summary
-```
-#### Full
-```{r}
-bFull <- blmer(abs(months_to_IRG_spline)~
+
+b1 <- blmer(abs(months_to_IRG_spline)~
              scale(max_EVI)+
              scale(entropy)+
              scale(log_colony_size)+
              (1|geeID), Peaks,
   control = lmerControl(check.conv.grad = "ignore"),
   cov.prior = gamma)
-bFull %>% summary
-bFull %>% confint()
-```
+b1 %>% summary
+b1 %>% confint()
 
-#### PRP
-```{r}
-bPRP <- blmer(abs(months_to_IRG_spline)~
-             scale(max_PRP)+
-             scale(pentropy)+
-             scale(log_colony_size)+
-             (1|geeID), Peaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bPRP %>% summary
-bPRP %>% confint()
-```
-#### EVI Colony
-```{r}
-(bEVIcolony <- blmer(abs(months_to_IRG_spline)~
+(b2 <- blmer(abs(months_to_IRG_spline)~
              scale(max_EVI)+
-               # scale(amp)+
-               # scale(max_PRP)+
-               # scale(min_PRP)+
-               # scale(min_EVI)+
-              # scale(IRG_amp)+
-             #scale(amp_EVI)+
-               # scale(entropy)+
+               #scale(min_EVI)+
+               # scale(IRG_amp)+
+             scale(amp_EVI)+
+               #scale(entropy)+
              scale(log_colony_size)+
              (1|geeID), Peaks,
 control = lmerControl(check.conv.grad = "ignore"),
 cov.prior = gamma))
-summary(bEVIcolony)
-confint(bEVIcolony)
-```
+summary(b2)
+confint(b2)
 
-#### Entropy Colony
-```{r}
-(bEntropycolony <- blmer(abs(months_to_IRG_spline)~
-             # scale(max_EVI)+
-               # scale(amp)+
-               # scale(max_PRP)+
-               # scale(min_PRP)+
-               # scale(min_EVI)+
-              # scale(IRG_amp)+
-             #scale(amp_EVI)+
-               scale(entropy)+
-             scale(log_colony_size)+
-             (1|geeID), Peaks,
-control = lmerControl(check.conv.grad = "ignore"),
-cov.prior = gamma))
-summary(bEntropycolony)
-confint(bEntropycolony)
-```
+BIC(b0, b1,b2)
 
-
-#### Compare models
-```{r}
-b <- BIC(b0, bFull,bEVIcolony, bentropy, bmaxevi, bcolony, bEntropycolony, bPRP)
-b[order(b$BIC),]
-```
-
-
-```{r}
-summary(bFull)
-#tab_model(b1)
-tab_model(bFull)
-# plot_model(b1, colors = "black")+theme_bw()
+tab_model(b1)
+plot_model(b1, colors = "black")+theme_bw()
 
 ```
 
@@ -1432,154 +1122,19 @@ for(i in 1:length(IDs)){
 }
 
 my.formula <- y ~ x
-fit <- lm(abs(months_to_IRG_spline)~ predictIRG, 
-          data = Peaks)#[Peaks$Location != "Kasanka",])
+fit <- lm(abs(months_to_IRG_spline)~ predictIRG, data = Peaks)
 summary(fit)
-ps2 <- ggplot(Peaks,#[Peaks$Location != "Kasanka",], 
-              aes(abs(months_to_IRG_spline), predictIRG, 
-                         col = Location))+
-  geom_point(aes(shape = Location))+
-  scale_shape_manual(values=1:length(unique((Peaks$Location))))+ 
-  ylab("predicted months to peak colony size")+
-  xlab("observed months to peak colony size")+
+ps2 <- ggplot(Peaks, aes(abs(months_to_IRG_spline), predictIRG, col = Location))+
+  geom_point()+
   geom_smooth(method = "lm", col = 1)+
   theme_classic() #+
-ps2
-ggsave(ps2, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/figs2.png")
-ggsave(ps2, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/figs2.eps", device = "eps")
+
+ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2.png")
+ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2.eps", device = "eps")
 r.sq_df <- sapply(r.sq, unlist)
 
 ```
-### Fig S3. Model fit of leave-one-colony-out cross validation. Omitted colonies are shown on the x-axis and model fit represented by R2 is on the y-axis. The average model fit across all models is presented with a horizontal line (R2 = 0.625).
-```{r}
-locations <- unique(Peaks$Location) %>% as.factor()
-par(mar = c(7,4,1,1))
-plot(locations, r.sq_df[2,], ylab = "R^2", xlab = "", xaxt="n",
-     main = "", type = "p", cex = 1)
-abline(h = mean(r.sq_df[2,]))
-axis(side = 1, at = 1:17, labels = locations, las = 2)
-```
-## Model IRP diff variation
-### blgmer
-#### Null
-```{r}
-(bp0 <- blmer(abs(months_to_precip_pspline)~
-             1+
-             (1|geeID), Peaks,
-control = lmerControl(check.conv.grad = "ignore"),
-cov.prior = gamma))
-```
-#### max PRP
-```{r}
-bmaxprp <- blmer(abs(months_to_precip_pspline)~
-             scale(max_PRP)+
-             (1|geeID), Peaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bmaxevi %>% summary
-```
-#### pentropy
-```{r}
-bpentropy <- blmer(abs(months_to_precip_pspline)~
-             scale(pentropy)+
-             (1|geeID), Peaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bentropy %>% summary
-```
-#### log colony size
-```{r}
-bpcolony <- blmer(abs(months_to_precip_pspline)~
-             scale(log_colony_size)+
-             (1|geeID), Peaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bpcolony %>% summary
-```
-#### Full
-```{r}
-bpFull <- blmer(abs(months_to_precip_pspline)~
-             scale(max_PRP)+
-             scale(pentropy)+
-             scale(log_colony_size)+
-             (1|geeID), Peaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bpFull %>% summary
-bpFull %>% confint()
-```
-
-#### Refined
-```{r}
-(bPRPcolony <- blmer(abs(months_to_precip_pspline)~
-             scale(max_PRP)+
-               #scale(max_EVI)+
-               # scale(IRG_amp)+
-             # scale(amp_EVI)+
-               #scale(entropy)+
-             scale(log_colony_size)+
-             (1|geeID), Peaks,
-control = lmerControl(check.conv.grad = "ignore"),
-cov.prior = gamma))
-summary(bPRPcolony)
-confint(bPRPcolony)
-```
-
-
-```{r}
-pb <- BIC(bp0, bmaxprp, bpentropy, bpcolony, bpFull, bPRPcolony)
-pb[order(pb$BIC),]
-tab_model(bpFull)
-plot_model(bcolony, colors = "black")+theme_bw()+ggtitle("abs(months to IRP)")
-```
-
-### Leave one out cross validation
-```{r}
-IDs <- 1:17
-fits <- list()
-r.sq <- list()
-
-Peaks$predictIRP <- NA
-i = 1
-
-for(i in 1:length(IDs)){
-  df <- Peaks[Peaks$geeID != IDs[i],]
-  
-  fits[[i]] <- blmer(abs(months_to_precip_pspline)~
-             # scale(max_EVI)+
-             # scale(entropy)+
-             scale(log_colony_size)+
-             (1|geeID), df,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-  summary(fits[[i]])
-  r.sq[[i]] <-  r.squaredGLMM(fits[[i]])
-  
-  df_out <- Peaks[Peaks$geeID == IDs[i],]
-  Peaks$predictIRP[which(Peaks$geeID == IDs[i])] <- 
-    predict(fits[[i]], df_out, allow.new.levels = TRUE)
-}
-
-my.formula <- y ~ x
-fit <- lm(abs(months_to_precip_pspline)~ predictIRG, 
-          data = Peaks)#[Peaks$Location != "Kasanka",])
-summary(fit)
-ps2p <- ggplot(Peaks,#[Peaks$Location != "Kasanka",], 
-              aes(abs(months_to_precip_pspline), predictIRP, 
-                         col = Location))+
-  geom_point(aes(shape = Location))+
-  scale_shape_manual(values=1:length(unique((Peaks$Location))))+ 
-  ylab("predicted months to peak colony size")+
-  xlab("observed months to peak colony size")+
-  geom_smooth(method = "lm", col = 1)+
-  theme_classic() #+
-ps2p
-ggsave(ps2, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/figs2p.png")
-ggsave(ps2, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/figs2p.eps", device = "eps")
-r.sq_df <- sapply(r.sq, unlist)
-
-```
-### Fig S3. Model fit of leave-one-colony-out cross validation. Omitted colonies are shown on the x-axis and model fit represented by R2 is on the y-axis. The average model fit across all models is presented with a horizontal line (R2 = 0.625).
+## Fig S3. Model fit of leave-one-colony-out cross validation. Omitted colonies are shown on the x-axis and model fit represented by R2 is on the y-axis. The average model fit across all models is presented with a horizontal line (R2 = 0.625).
 ```{r}
 locations <- unique(Peaks$Location) %>% as.factor()
 par(mar = c(7,4,1,1))
@@ -1589,178 +1144,57 @@ abline(h = mean(r.sq_df[2,]))
 axis(side = 1, at = 1:17, labels = locations, las = 2)
 ```
 
-# Strict Peaks Model
-Run model using a more conservative definition of colony peaks 
+# Run model using a more conservative definition of colony peaks 
 ```{r}
 sPeaks <- Peaks[which(Peaks$Date %in% Strict_Peaks$Date & Peaks$ratio %in% Strict_Peaks$ratio),]
-
-psych::pairs.panels(sPeaks[,c("abs_months_to_IRG_spline", # "abs_months_to_IRP_spline", 
-                             "log_colony_size", # "ratio", 
-                             "entropy", #"EVIannualsum", 
-                             "max_EVI", # "min_EVI" # "amp_EVI" - correlated with entropy
-                             #)])
-# psych::pairs.panels(Peaks[,c(
-                             "abs_months_to_IRP_spline", 
-                             #"log_colony_size", # "ratio", 
-                             "pentropy", #"precipannualsum", 
-                             "max_PRP"#, "min_PRP" #"amp_PRP" - correlated with pentropy
-                             )])
 ```
 
-### Fig S5
-#### months to IRG vs predictors
+## bglmer
 ```{r}
-p1 <- 
-  ggplot(sPeaks, aes(x = entropy, y = abs_months_to_IRG_spline))+
-  geom_point(alpha = 0.2)+geom_smooth(method = "lm", col = "black")+
-  theme_classic()+
-  ylab("Months to Peak IRG")+xlab("EVI Entropy")
-p2 <- 
-  ggplot(sPeaks, #[-42,],
-       aes(x = max_EVI, y = abs_months_to_IRG_spline))+
-  geom_point(alpha = 0.2)+geom_smooth(method = "lm", col = "black")+
-  theme_classic()+
-  ylab("Months to Peak IRG")+xlab("max(EVI)")
-p3 <- ggplot(sPeaks, aes(x = log_colony_size, y = abs_months_to_IRG_spline))+
-  geom_point(alpha = 0.2)+geom_smooth(method = "lm", col = "black")+
-  theme_classic()+
-  ylab("Months to Peak IRG")+xlab("log(colony size)")
 
-ggarrange(p1,p2,p3, nrow = 1, labels = LETTERS[1:3])
-```
-#### months to IRP vs predictors
-```{r}
-p4 <- 
-  ggplot(sPeaks, aes(x = pentropy, y = abs_months_to_IRP_spline))+
-  geom_point(alpha = 0.2)+geom_smooth(method = "lm", col = "black")+
-  theme_classic()+
-  ylab("Months to Peak IRP")+xlab("PRP Entropy")
-p5 <- 
-  ggplot(sPeaks, #[-42,],
-       aes(x = max_EVI, y = abs_months_to_IRP_spline))+
-  geom_point(alpha = 0.2)+geom_smooth(method = "lm", col = "black")+
-  theme_classic()+
-  ylab("Months to Peak IRP")+xlab("max(PRP)")
-p6 <- ggplot(sPeaks, aes(x = log_colony_size, y = abs_months_to_IRP_spline))+
-  geom_point(alpha = 0.2)+geom_smooth(method = "lm", col = "black")+
-  theme_classic()+
-  ylab("Months to Peak IRP")+xlab("log(colony size)")
-
-ps4 <- ggarrange(p1,p2,p3,p4,p5,p6, nrow = 2,ncol = 3, labels = LETTERS[1:6])
-ps4
-ggsave(ps4, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/figs4.png")
-ggsave(ps4, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/figs4.eps", device = "eps")
-```
-## model IRG diff
-### bglmer
-Bayesian generalized linear mixed model
-#### Null
-```{r}
-(bs0 <- blmer(abs(months_to_IRG_spline)~
+(b0 <- blmer(abs(months_to_IRG_spline)~
              1+
              (1|geeID), sPeaks,
 control = lmerControl(check.conv.grad = "ignore"),
 cov.prior = gamma))
-```
-#### max EVI
-```{r}
-bsmaxevi <- blmer(abs(months_to_IRG_spline)~
-             scale(max_EVI)+
-             (1|geeID), sPeaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bsmaxevi %>% summary
-```
-#### entropy
-```{r}
-bsentropy <- blmer(abs(months_to_IRG_spline)~
-             scale(entropy)+
-             (1|geeID), sPeaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bsentropy %>% summary
-```
-#### log colony size
-```{r}
-bscolony <- blmer(abs(months_to_IRG_spline)~
-             scale(log_colony_size)+
-             (1|geeID), sPeaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bscolony %>% summary
-```
-#### Full
-```{r}
-bsFull <- blmer(abs(months_to_IRG_spline)~
-             scale(max_EVI)+
-             scale(entropy)+
-             scale(log_colony_size)+
-             (1|geeID), sPeaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bsFull %>% summary
-bsFull %>% confint()
-```
 
-#### EVI Colony
-```{r}
-# names(Peaks)
-(bsEVIcolony <- blmer(abs(months_to_IRG_spline)~
+(b1 <- blmer(abs(months_to_IRG_spline)~
              scale(max_EVI)+
-               # scale(amp)+
-               # scale(max_PRP)+
-               # scale(min_PRP)+
-               # scale(min_EVI)+
-              # scale(IRG_amp)+
-             #scale(amp_EVI)+
-               # scale(entropy)+
+             scale(entropy)+
              scale(log_colony_size)+
              (1|geeID), sPeaks,
 control = lmerControl(check.conv.grad = "ignore"),
 cov.prior = gamma))
-summary(bsEVIcolony)
-# confint(b2)
-```
-#### Entropy Colony
-```{r}
-# names(Peaks)
-(bsentropycolony <- blmer(abs(months_to_IRG_spline)~
-             scale(entropy)+
-               # scale(amp)+
-               # scale(max_PRP)+
-               # scale(min_PRP)+
-               # scale(min_EVI)+
-              # scale(IRG_amp)+
-             #scale(amp_EVI)+
-               # scale(entropy)+
+b1 %>% summary
+b1 %>% confint()
+
+(b2 <- blmer(abs(months_to_IRG_spline)~
+             scale(max_EVI)+
+               #scale(min_EVI)+
+               # scale(IRG_amp)+
+             scale(amp_EVI)+
+               #scale(entropy)+
              scale(log_colony_size)+
              (1|geeID), sPeaks,
 control = lmerControl(check.conv.grad = "ignore"),
 cov.prior = gamma))
-summary(bsentropycolony)
-# confint(b2)
-```
+summary(b2)
+confint(b2)
 
+BIC(b0, b1,b2)
 
-#### Compare models
-```{r}
-b <- BIC(bs0, bsFull, bsentropy, bsentropycolony, bsEVIcolony, bsmaxevi, bscolony)
-b[order(b$BIC),]
-#tab_model(b1)
-tab_model(bsFull)
-summary(bsFull)
-plot_model(bsFull, colors = "black")+theme_bw()
+tab_model(b1)
+plot_model(b1, colors = "black")+theme_bw()
 
 ```
 
 ### Leave one out cross validation
-#### Fig S5
 ```{r}
 IDs <- 1:17
 fits <- list()
-r.sq <- list()
+r.sqs <- list()
 
-sPeaks$predictIRG <- NA
+Peaks$predictIRG <- NA
 i = 1
 
 for(i in 1:length(IDs)){
@@ -1774,173 +1208,34 @@ for(i in 1:length(IDs)){
   control = lmerControl(check.conv.grad = "ignore"),
   cov.prior = gamma)
   summary(fits[[i]])
-  r.sq[[i]] <-  r.squaredGLMM(fits[[i]])
+  r.sqs[[i]] <-  r.squaredGLMM(fits[[i]])
   
-  df_out <- sPeaks[Peaks$geeID == IDs[i],]
-  try({
-    sPeaks$predictIRG[which(sPeaks$geeID == IDs[i])] <- 
+  df_out <- Peaks[Peaks$geeID == IDs[i],]
+  Peaks$predictIRG[which(Peaks$geeID == IDs[i])] <- 
     predict(fits[[i]], df_out, allow.new.levels = TRUE)
-  })
 }
 
 my.formula <- y ~ x
-fit <- lm(abs(months_to_IRG_spline)~ predictIRG, data = sPeaks)
+fit <- lm(abs(months_to_IRG_spline)~ predictIRG, data = Peaks)
 summary(fit)
-ps2 <- ggplot(sPeaks, aes(abs(months_to_IRG_spline), predictIRG, col = Location))+
+ps2 <- ggplot(Peaks, aes(abs(months_to_IRG_spline), predictIRG, col = Location))+
   geom_point()+
   geom_smooth(method = "lm", col = 1)+
   theme_classic() #+
+  
 
-ps2
-# ggsave(ps2, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/figs2.png")
-# ggsave(ps2, filename = "../../../../Dropbox/Manuscripts/ColonyPhenology/plots/figs2.eps", device = "eps")
-r.sq_df <- sapply(r.sq, unlist)
+# ggsave(ps2, filename = "../../../../Dropbox/MPI/Eidolon/Greenwave/plots/figs2_strict.png")
+r.sq_dfs <- sapply(r.sqs, unlist)
 
 ```
-## Fig S3. Model fit of leave-one-colony-out cross validation. Omitted colonies are shown on the x-axis and model fit represented by R2 is on the y-axis. The average model fit across all models is presented with a horizontal line (R2 = 0.625).
+## 
 ```{r}
-locations <- unique(sPeaks$Location) %>% as.factor()
 par(mar = c(7,4,1,1))
-plot(locations, r.sq_df[2,], ylab = "R^2", xlab = "", xaxt="n",
+plot(locations, r.sq_dfs[2,], ylab = "R^2", xlab = "", xaxt="n",
      main = "", type = "p", cex = 1)
-abline(h = mean(r.sq_df[2,]))
+abline(h = mean(r.sq_dfs[2,]))
 axis(side = 1, at = 1:17, labels = locations, las = 2)
 ```
-## Model IRP diff variation
-### blgmer
-#### Null
-```{r}
-(bsp0 <- blmer(abs(months_to_precip_pspline)~
-             1+
-             (1|geeID), sPeaks,
-control = lmerControl(check.conv.grad = "ignore"),
-cov.prior = gamma))
-```
-#### max PRP
-```{r}
-bsmaxprp <- blmer(abs(months_to_precip_pspline)~
-             scale(max_PRP)+
-             (1|geeID), sPeaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bmaxevi %>% summary
-```
-#### pentropy
-```{r}
-bspentropy <- blmer(abs(months_to_precip_pspline)~
-             scale(pentropy)+
-             (1|geeID), sPeaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bentropy %>% summary
-```
-#### log colony size
-```{r}
-bspcolony <- blmer(abs(months_to_precip_pspline)~
-             scale(log_colony_size)+
-             (1|geeID), sPeaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bspcolony %>% summary
-```
-#### Full
-```{r}
-bspFull <- blmer(abs(months_to_precip_pspline)~
-             scale(max_PRP)+
-             scale(pentropy)+
-             scale(log_colony_size)+
-             (1|geeID), sPeaks,
-  control = lmerControl(check.conv.grad = "ignore"),
-  cov.prior = gamma)
-bspFull %>% summary
-bspFull %>% confint()
-```
-
-#### Refined
-```{r}
-(bspPRPcolony <- blmer(abs(months_to_precip_pspline)~
-             scale(max_PRP)+
-               #scale(max_EVI)+
-               # scale(IRG_amp)+
-             # scale(amp_EVI)+
-               #scale(entropy)+
-             scale(log_colony_size)+
-             (1|geeID), sPeaks,
-control = lmerControl(check.conv.grad = "ignore"),
-cov.prior = gamma))
-summary(bspPRPcolony)
-confint(bspPRPcolony)
-```
-
-
-```{r}
-pb <- BIC(bsp0, bsmaxprp, bspentropy, bspcolony, bspFull,bspPRPcolony)
-pb[order(pb$BIC),]
-tab_model(bspFull)
-plot_model(b1, colors = "black")+theme_bw()+ggtitle("abs(months to IRP)")
-```
-
-
-
-# What predicts minimum colony size?
-## full model
-```{r}
-m <- glmer(min0~scale(entropy)+scale(pentropy)+
-             scale(max_EVI)+scale(max_PRP)+
-             (1|geeID),
-      family = "binomial",
-      data = count_annual_sum,
-      na.action = "na.pass")
-summary(m)
-```
-
-## dredge
-```{r}
-dm <- MuMIn::dredge(m)
-dm
-```
-
-## best model
-```{r}
-m1 <- glmer(min0~#scale(entropy)+
-              scale(pentropy)+
-             #scale(max_EVI)+scale(max_PRP)+
-             (1|geeID),
-      family = "binomial",
-      data = count_annual_sum,
-      na.action = "na.pass")
-summary(m1)
-plot(m1)
-p_load(parameters, see)
-model_parameters(m1)#, standardize = "refit")
-plot(parameters(m1))
-tab_model(m1)
-report::report(m1)
-
-```
-```{r}
-ggplot(count_annual_sum, aes(x = min0, y = pentropy))+
-  geom_point(aes(col = Location))+
-  geom_smooth(method = "glm")+
-  theme_classic()
-```
-
-
-## proportion of colony at minimum?
-
-## minimum colony size vs latitude
-```{r}
-minC <- colonies %>% group_by(Country, Location, geeID, Lat, Long) %>% 
-  dplyr::summarise(min = min(Count, na.rm = TRUE))
-minC
-plot(abs(minC$Lat), log(minC$min+1))
-
-fit <- lm(log(min+1)~abs(Lat), data = minC)
-summary(fit)
-abline(fit)
-```
-
-
 
 Acknowledgements
 ```{r}

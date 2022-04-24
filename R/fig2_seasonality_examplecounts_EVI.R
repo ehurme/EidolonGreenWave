@@ -152,15 +152,14 @@ load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/avg_peaks.RData")
 load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/colony_count.RData")
 
 ## normalize P Values
-Pnorm <- P
-
+Ps <- scale(P)
 
 plot(S)
 text(Lat~ Long, labels = geeID, #cex = 1.5,
      data = avg_peaks)
 
 geeidx <- c(5, 10, 14, 16)
-plot(S)
+plot(Ps)
 text(Lat~ Long, labels = c("A", "B", "D", "C"), cex = 1.5,
      data = avg_peaks[avg_peaks$geeID %in% geeidx,])
 
@@ -201,7 +200,7 @@ for(i in 1:length(geeidx)){
   # seasonality of that location
   loc <- c[1,]
   coordinates(loc) <- c("Long", "Lat")
-  loc_sea <- round(extract(P,#S, 
+  loc_sea <- round(extract(Ps,#S, 
                           loc), 2)
   fig[[i]] <- 
     ggplot(evi_mlt[evi_mlt$variable != "precip",], 
@@ -235,7 +234,7 @@ for(i in 1:length(geeidx)){
 fig[[3]]
 
 #e_df <- as.data.frame(E, xy = TRUE)
-e_df <- as.data.frame(P, xy = TRUE)
+e_df <- as.data.frame(Ps, xy = TRUE)
 
 p_map <- ggplot(e_df, aes(x,y,fill = normalized.month))+#entropy))+
   geom_raster()+

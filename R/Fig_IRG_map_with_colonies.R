@@ -3,12 +3,12 @@ library(raster)
 library(ggplot2)
 library(rnaturalearth)
 
-load("./../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks.RData")
-load("C:/Users/Edward/MODIStsp/VI_Monthly_005dg_v6/EVIAfrica.RData")
-load("./../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size.RData")
+load("./../../../Dropbox/MPI/Eidolon/Greenwave/rdata/avg_peaks_TRMM.RData")
+load("./../../../Dropbox/MPI/Eidolon/Greenwave/rdata/EVIAfrica.RData")
+load("./../../../Dropbox/MPI/Eidolon/Greenwave/data/avg_colony_size_TRMM.RData")
 
 avg_irg
-avg_peaks
+avg_peaks <- batdf_max_mean
 Africa <- ne_countries(continent = "Africa", scale = "medium", returnclass = "sf")
 
 tmp<- mask(avg_irg, Africa)
@@ -43,7 +43,7 @@ batdf_max_mean$size_break <-
          labels = c(
            paste0("<", exp(10) %>% round(digits = -4)),
            paste0("<", exp(11.4) %>% round(digits = -4)),
-           paste0("<", exp(12.9) %>% round(digits = -4)),
+           paste0("<400000"),#, exp(12.9) %>% round(digits = -4)),
            # exp(14.3) %>% round(digits = -5),
            paste0("<", exp(15.7) %>% round(digits = -5))))
 
@@ -60,7 +60,7 @@ gg <- ggplot(mydf, aes(x = x, y = y, fill = value)) +
                                         # col = "red", 
              size = 4,
              inherit.aes = FALSE) +
-  scale_shape_manual(values=c(15:18))+
+  scale_shape_manual(values=c(18:15))+
   scale_color_manual(values = brewer.pal(5,"Reds")[2:5])+
   # geom_point(data = batdf_max_mean, aes(Long, Lat , size = peak_size), 
   #            inherit.aes = FALSE, 

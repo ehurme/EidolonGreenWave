@@ -9,10 +9,11 @@ source("./src/IRG_functions.R")
 
 # CHIRPS and TRMM
 load("./../../../Dropbox/MPI/Eidolon/Greenwave/rdata/rs_max_sum_TRMM.Rdata")
+# rs_max_sum <- read.csv("../../../../Dropbox/MPI/Eidolon/GreenWave/data/phen_summary.csv")
 rs_TRMM <- rs
 rs_max_TRMM <- rs_max
 rs_max_sum_TRMM <- rs_max_sum
-load("./../../../Dropbox/MPI/Eidolon/Greenwave/rdata/rs_max_sum.Rdata")
+load("./../../../Dropbox/MPI/Eidolon/Greenwave/rdata/")
 ## precip
 
 prp_avg <- data.frame(chirps_p = rs_max_sum$precip_month,
@@ -23,6 +24,9 @@ prp_avg <- data.frame(chirps_p = rs_max_sum$precip_month,
 ### raw
 plot(rs$precip_spline, rs_TRMM$precip_spline)
 cor(as.numeric(rs$precip_spline), as.numeric(rs_TRMM$precip_spline), use = "pairwise.complete.obs")
+plot(rs_max$precip_spline, rs_max_TRMM$precip_spline)
+plot(rs_max_sum$precip_month, rs_max_sum_TRMM$precip_month)
+
 p <- data.frame(chirps = rs$precip_spline, trmm = rs_TRMM$precip_spline, geeID = rs$geeID)
 
 ggplot(p, aes(x = month(chirps), y = month(trmm), col = factor(geeID)))+geom_point()+
@@ -59,7 +63,7 @@ prp_avg$p_t <- ts
 ###
 rs_max
 p_max <- data.frame(chirps = rs_max$precip_spline, 
-                    trmm = rs_max_TRMM$precip_spline, geeID = rs$geeID)
+                    trmm = rs_max_TRMM$precip_spline, geeID = rs_max$geeID)
 ps <- {} 
 ts <- {}
 i <- 1
@@ -91,7 +95,7 @@ rs_max_sum_TRMM$precipp_month
 
 pp_max <- data.frame(chirps = (rs_max$precip_pspline), 
                      trmm = (rs_max_TRMM$precip_pspline), 
-                     geeID = rs$geeID)
+                     geeID = rs_max$geeID)
 d_max <- {}
 i <- 1
 for(i in 1:length(IDs)){

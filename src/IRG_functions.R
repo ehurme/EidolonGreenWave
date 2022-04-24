@@ -7,6 +7,28 @@ findpeaks <- function (x, thresh = 0)
   else pks
 }
 
+# x <- c(ymd("2012-12-19"), ymd("2001-12-19"))
+
+round_month <- function(x, unit = "months"){
+  require(lubridate)
+  if(class(x) != "Date") x <- ymd(x)
+  if(class(x) == "Date"){
+    y <- year(x)
+    m <- month(x)
+    d <- day(x)
+    dm <- days_in_month(x)
+    r <- round(d/dm)
+    nm <- m+r
+    if(any(nm > 12)){
+      idx <- which(nm > 12)
+      y[idx] <- y[idx] +1 
+      nm[idx] <- 1
+      }
+    nearest_month <- ymd(paste0(y,"-",nm,"-",01))
+  }  
+  return(nearest_month)
+}
+
 # rescale values between 0 and 1
 rescale <- function(x, x.min = NULL, x.max = NULL, new.min = 0, new.max = 1) {
   if(is.null(x.min)) x.min = min(x, na.rm = TRUE)
