@@ -187,6 +187,7 @@ for(i in 1:length(geeidx)){
   predp <- smooth.spline(timep, pp)
   plot(predp, type = "l")
   prp <- predict(predp, as.numeric(time))$y
+  prp[prp < 0] <- 0
   # plot(prp)
   # prp <- rescale(prp, new.min = 0, new.max = 0.5)
   irp <- c(NA, diff(prp))/(max(diff(prp))*3)
@@ -201,7 +202,7 @@ for(i in 1:length(geeidx)){
   # seasonality of that location
   loc <- c[1,]
   coordinates(loc) <- c("Long", "Lat")
-  loc_sea <- round(extract(P,#S, 
+  loc_sea <- round(extract(S, 
                           loc), 2)
   fig[[i]] <- 
     ggplot(evi_mlt[evi_mlt$variable != "precip",], 
@@ -222,29 +223,30 @@ for(i in 1:length(geeidx)){
     geom_hline(yintercept = 0, col = "gray")+
     ggtitle(paste0(# LETTERS[i],". ",
       avg_peaks$Location[geeidx[i]],
-                   ", Mean EVI:",#", Entropy:", 
+                   ", Entropy:", 
                     loc_sea))+
+    xlab("Time")+ylab("Value")+
     geom_area(data = c, aes(x = date, y = Count/max(Count, na.rm = TRUE)), # *max(evi$evi)), 
               col = 1, alpha = 0.1, inherit.aes = FALSE)+
     theme(legend.position = "none", 
           # plot.title = element_text(hjust = -0.45),
           # axis.text.x = element_text(angle = 30, vjust = 1, hjust=1),
-          text = element_text(size = 18))
+          text = element_text(size = 20))
   fig[[i]]
 }
 fig[[3]]
 
-#e_df <- as.data.frame(E, xy = TRUE)
-e_df <- as.data.frame(P, xy = TRUE)
+e_df <- as.data.frame(E, xy = TRUE)
+# e_df <- as.data.frame(P, xy = TRUE)
 
-p_map <- ggplot(e_df, aes(x,y,fill = normalized.month))+#entropy))+
+p_map <- ggplot(e_df, aes(x,y,fill = entropy))+
   geom_raster()+
   coord_quickmap()+
   geom_text(data = avg_peaks[avg_peaks$geeID %in% geeidx,], 
             col = "white", size = 10,
             aes(Long, Lat, label = LETTERS[c(1,2,4,3)]), inherit.aes = FALSE)+
   labs(x = "Longitude", y = "Latitude")+
-  viridis::scale_fill_viridis("EVI")+ #"Entropy")+
+  viridis::scale_fill_viridis("Entropy")+
   theme(legend.position = "top", #fill = guide_legend(title ="Entropy"),
         text = element_text(size = 15))
 p_map
@@ -256,11 +258,11 @@ avg_peaks
 
 load("./../../../Dropbox/MPI/Eidolon/GreenWave/rdata/gg_examples.Rdata")
 
-fig2 <- ggarrange(ggarrange(fig[[1]], fig[[2]], ncol = 1, labels = c("A.", "B.")), 
+fig2 <- ggarrange(ggarrange(fig[[1]], fig[[2]], ncol = 1, labels = c(" ", " ")), 
          ggarrange(ggarrange(gg_peaks, gg_entropy, align = "h"), 
                    p_map, ncol = 1, 
                    heights = c(0.3, 0.7), widths = c(1,1)),
-         ggarrange(fig[[4]], fig[[3]], ncol = 1, labels = c("C.", "D.")), nrow = 1, 
+         ggarrange(fig[[4]], fig[[3]], ncol = 1, labels = c(" ", " ")), nrow = 1, 
          #labels = c("A","","C","B","B","D"),
          widths = c(c(0.3,0.4,0.3)))
 fig2
@@ -268,3 +270,8 @@ ggsave(fig2, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig2_TRM
        width = 20, height = 11)
 ggsave(fig2, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig2.eps", 
        width = 20, height = 11, device = "eps")
+ggsave(fig2, filename = "./../../../Dropbox/MPI/Eidolon/Greenwave/plots/fig2.pdf", 
+       width = 20, height = 11, device = "pdf")
+fig[[3]]+xlim(c(as.Date("2010-01-01"),as.Date("2012-01-01")))
+
+              
