@@ -1,5 +1,5 @@
 # Eidolon Green Wave
-This R code is associated with the manuscript "Fruit bat migration matches green wave in seasonal landscapes". 
+This R code is associated with the manuscript Hurme, Edward, et al. "Fruit bat migration matches green wave in seasonal landscapes." Functional Ecology 36.8 (2022): 2043-2055. https://doi.org/10.1111/1365-2435.14097
 
 Version 1.0.0 with colony count data and code is available at https://doi.org/10.5061/dryad.z08kprrdb
 
